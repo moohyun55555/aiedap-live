@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function str(v, max) { return v is string && v.size() <= max; }
+    // 모둠별 게시판 (1~15모둠)
+    match /groups/{g} {
+      function okGroup() { return g in ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']; }
+
+      match /teachers/{t} {
+        allow read: if okGroup();
+        allow create: if okGroup()
+          && request.resource.data.keys().hasOnly(['name', 'intro', 'question', 'improve', 'createdAt'])
+          && str(request.resource.data.name, 20) && request.resource.data.name.size() > 0
+          && str(request.resource.data.intro, 1000) && str(request.resource.data.question, 1000)
+          && request.resource.data.improve is list && request.resource.data.improve.size() == 3;
+        allow update: if okGroup()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['intro', 'question', 'improve'])
+          && str(request.resource.data.intro, 1000) && str(request.resource.data.question, 1000)
+          && request.resource.data.improve is list && request.resource.data.improve.size() == 3;
+      }
+
+      // 선생님별 받은 피드백 (items 맵 하나에 모음, 익명)
+      match /fb/{t} {
+        allow read: if okGroup();
+        allow create, update: if okGroup()
+          && request.resource.data.keys().hasOnly(['items'])
+          && request.resource.data.items is map
+          && request.resource.data.items.size() <= 400;
+      }
+    }
+  }
+}

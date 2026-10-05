@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI 융합수업 실천 사례 공유</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23A84E24%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%277%27 fill=%27none%27 stroke=%27white%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 왼쪽 열(스크린 + 채팅, 최대 520px) / 오른쪽 열(교안 스크롤 + 실습 링크). 데스크톱에서는 한 화면 고정, 교안·채팅만 내부 스크롤 */
+:root{
+  --bg:#F6EEE7; --surface:#FFFFFF; --surface-2:#FCF8F4; --line:#EEE2D8; --line-strong:#E0CDBE;
+  --fg:#2A211C; --muted:#5E5048; --faint:#9A8A7E;
+  --accent:#A84E24; --accent-strong:#7E3A1A; --accent-soft:#FDF0E6; --accent-tint:#F9E2D2; --on-accent:#FFFFFF;
+  --screen:#2B1F19; --live:#B3261E; --free:#4F6B3F; --host-bg:#EAF0E6; --host-line:#B9CDB0;
+  --shadow:0 1px 2px rgba(90,50,20,.08);
+  --font:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1E1814; --surface:#2A221D; --surface-2:#322822; --line:#3E322B; --line-strong:#54443A;
+  --fg:#F3E9E1; --muted:#C9B9AD; --faint:#8F7F73;
+  --accent:#E89A6E; --accent-strong:#F2B38E; --accent-soft:#3A2A21; --accent-tint:#4A3326; --on-accent:#2A1408;
+  --screen:#120D0A; --live:#E5534B; --free:#A8C79A; --host-bg:#26301F; --host-line:#4D6141;
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1E1814; --surface:#2A221D; --surface-2:#322822; --line:#3E322B; --line-strong:#54443A;
+  --fg:#F3E9E1; --muted:#C9B9AD; --faint:#8F7F73;
+  --accent:#E89A6E; --accent-strong:#F2B38E; --accent-soft:#3A2A21; --accent-tint:#4A3326; --on-accent:#2A1408;
+  --screen:#120D0A; --live:#E5534B; --free:#A8C79A; --host-bg:#26301F; --host-line:#4D6141;
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;line-height:1.35;text-wrap:balance}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.app{height:100%;display:flex;flex-direction:column;gap:14px;padding:14px 16px 16px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}
+.brand{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0}
+.live{display:inline-flex;align-items:center;gap:6px;background:var(--live);color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:999px}
+.live i{width:7px;height:7px;border-radius:50%;background:#fff}
+@media (prefers-reduced-motion:no-preference){.live i{animation:pulse 1.6s ease-in-out infinite}@keyframes pulse{50%{opacity:.35}}}
+header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em}
+.sub{font-size:13px;color:var(--muted)}
+.head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--accent-tint);color:var(--accent-strong)}
+.textbtn{background:none;border:0;padding:6px 4px;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.textbtn:hover{color:var(--accent)}
+
+.cols{flex:1;min-height:0;display:flex;flex-wrap:wrap;gap:14px;align-items:stretch}
+.left{flex:1 1 400px;max-width:520px;min-width:0;min-height:0;display:flex;flex-direction:column;gap:14px}
+.right{flex:999 1 520px;min-width:0;min-height:0;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);min-width:0}
+.ptitle{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px}
+.ptitle h2{font-size:16px;font-weight:700}
+.ptitle span{font-size:13px;color:var(--muted)}
+
+/* 스크린 */
+.screen{padding:12px;display:flex;flex-direction:column;gap:10px}
+.stage{position:relative;width:100%;aspect-ratio:16/9;background:var(--screen);border-radius:10px;overflow:hidden;border:0;padding:0;display:block;cursor:zoom-in}
+.stage img{width:100%;height:100%;object-fit:contain;display:block}
+.stage .count{position:absolute;right:8px;bottom:6px;font-size:12px;color:#fff;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:6px;font-variant-numeric:tabular-nums}
+.ctrl{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.ctrl-l{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.icon{width:44px;height:44px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.icon:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.icon:disabled{opacity:.4;cursor:default}
+.status{font-size:13px;font-weight:600}
+.status.follow{color:var(--accent)}
+.status.free{color:var(--free)}
+.status.lock{color:var(--muted)}
+.btn{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:600;font-size:14px}
+.btn:hover:not(:disabled){background:var(--accent-strong);border-color:var(--accent-strong)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.ghost:hover:not(:disabled){background:var(--accent-soft)}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* 발표자 막대 */
+.pbar{padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--accent-soft);border:1px solid var(--accent-tint)}
+.pbar .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pbar strong{font-size:13px;color:var(--accent-strong)}
+.toggle[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+
+/* 채팅 */
+.chat{flex:1;min-height:240px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msgs{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:2px}
+.msg{display:flex;flex-direction:column;gap:3px;align-items:flex-start;max-width:100%}
+.msg.mine{align-items:flex-end}
+.msg .meta{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.bubble{max-width:88%;font-size:15px;line-height:1.5;padding:8px 12px;border-radius:12px 12px 12px 4px;background:var(--surface-2);border:1px solid var(--line);white-space:pre-wrap;word-break:break-word}
+.msg.mine .bubble{background:var(--accent);color:var(--on-accent);border-color:var(--accent);border-radius:12px 12px 4px 12px}
+.msg.host .bubble{background:var(--host-bg);border-color:var(--host-line);color:var(--fg)}
+.host-tag{font-size:11px;font-weight:700;color:var(--free)}
+.del{background:none;border:0;padding:0 2px;font-size:12px;color:var(--muted);text-decoration:underline}
+.empty{font-size:13px;color:var(--faint);padding:6px 2px}
+.compose{display:flex;flex-direction:column;gap:6px}
+.compose .row{display:flex;gap:8px}
+.compose input{flex:1;min-width:0;height:44px;border:1px solid var(--line-strong);border-radius:10px;padding:0 12px;background:var(--surface-2);font-size:15px}
+.compose input::placeholder{color:var(--faint)}
+.note{font-size:12px;color:var(--muted)}
+.paused{font-size:13px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:10px;padding:8px 10px}
+
+/* 교안 */
+.plan{flex:1;min-height:320px;padding:20px 24px;display:flex;flex-direction:column;gap:12px}
+.plan .ptitle{border-bottom:1px solid var(--line);padding-bottom:10px}
+.plan .ptitle h2{font-size:20px}
+.plan-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){.plan-scroll{scroll-behavior:auto}}
+.sec{padding:16px 18px;border-radius:12px;border:1px solid var(--line);background:var(--surface);scroll-margin-top:4px}
+.sec.on{border:2px solid var(--accent);background:var(--accent-soft);padding:15px 17px}
+.sec .num{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.02em}
+.sec .now{font-size:11px;font-weight:700;color:var(--on-accent);background:var(--accent);padding:1px 8px;border-radius:999px}
+.sec h3{margin:4px 0 6px;font-size:18px;font-weight:700;letter-spacing:-.01em}
+.sec .body{max-width:68ch;font-size:16.5px;line-height:1.8}
+.sec .body p{margin:0 0 .7em}
+.sec .body p:last-child{margin-bottom:0}
+.sec .body strong{font-weight:700;color:var(--accent-strong)}
+.sec.gap{padding:8px 18px;border-style:dashed;background:transparent}
+.sec.gap .num{color:var(--faint)}
+.sec.gap.on{border:2px dashed var(--accent);background:var(--accent-soft)}
+
+/* 실습 링크 */
+.links{padding:14px;display:flex;flex-direction:column;gap:10px}
+.lgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lk{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;text-decoration:none;color:var(--fg);background:var(--surface-2);font-weight:600;font-size:14px;min-width:0}
+.lk:hover{border-color:var(--accent);background:var(--accent-soft)}
+.lk .ic{width:30px;height:30px;border-radius:8px;background:var(--accent-tint);color:var(--accent-strong);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.lk .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lk .ext{color:var(--muted);flex:none}
+
+/* 크게 보기 */
+.zoom{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:30}
+.zoom img{max-width:100%;max-height:100%;object-fit:contain}
+.zoom .x{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:10px;min-height:44px;padding:0 14px;font-weight:600}
+.zoom .zc{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;color:#fff;background:rgba(0,0,0,.45);padding:6px 10px;border-radius:12px;font-variant-numeric:tabular-nums}
+.zoom .zc button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;width:44px;height:40px}
+
+.modal{position:fixed;inset:0;background:rgba(30,20,14,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.mbox{background:var(--surface);border-radius:16px;padding:24px;width:min(400px,100%);display:flex;flex-direction:column;gap:12px}
+.mbox h2{font-size:19px}
+.mbox input{height:46px;border:1px solid var(--line-strong);border-radius:10px;padding:0 12px;background:var(--surface-2);font-size:16px}
+.err{color:var(--live);font-size:13px;min-height:18px}
+.banner{background:#FFF6D9;color:#5A4A12;border:1px solid #E9D58F;border-radius:10px;padding:8px 12px;font-size:13px}
+:root[data-theme="dark"] .banner{background:#3A331C;color:#F1E3A6;border-color:#6B5E2A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .banner{background:#3A331C;color:#F1E3A6;border-color:#6B5E2A}}
+
+@media (min-width:980px){
+  .app{overflow:hidden}
+  .cols{flex-wrap:nowrap}
+}
+@media (max-width:979px){
+  html,body{height:auto}
+  .app{height:auto}
+  .left{max-width:none}
+  .chat{min-height:380px;max-height:70vh}
+  .plan{max-height:80vh}
+}
+@media (max-width:640px){.lgrid{grid-template-columns:minmax(0,1fr)}.plan{padding:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div id="banner" class="banner" role="status" hidden></div>
+  <header>
+    <div class="brand">
+      <span class="live"><i></i>LIVE</span>
+      <h1>AI 융합수업 실천 사례 공유</h1>
+      <span class="sub">AIEDAP 마스터교원 신규연수 · 3-4차시 · 여섯 개의 렌즈로 수업을 다시 보다</span>
+    </div>
+    <div class="head-actions">
+      <span class="chip" id="roleChip" hidden>발표자 모드</span>
+      <button type="button" class="textbtn" id="presenterBtn">발표자 로그인</button>
+    </div>
+  </header>
+
+  <div class="cols">
+    <div class="left">
+      <section class="panel screen" aria-label="실시간 스크린">
+        <button type="button" class="stage" id="stage" aria-label="슬라이드 크게 보기">
+          <img id="slideImg" alt="" src="slides/1.webp">
+          <span class="count" id="count">1 / 30</span>
+        </button>
+        <div class="ctrl">
+          <div class="ctrl-l">
+            <button type="button" class="icon" id="prevBtn" aria-label="이전 슬라이드"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <button type="button" class="icon" id="nextBtn" aria-label="다음 슬라이드"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+            <span class="status follow" id="status" aria-live="polite">● 발표자 화면을 따라가는 중</span>
+          </div>
+          <button type="button" class="btn" id="backBtn" hidden>발표자 위치로</button>
+        </div>
+      </section>
+
+      <section class="panel pbar" id="pbar" aria-label="발표자 도구" hidden>
+        <strong>발표자 도구 · ← → 키, 프레젠터 리모컨으로도 넘길 수 있습니다</strong>
+        <div class="row">
+          <button type="button" class="btn" id="recallBtn">모두 내 화면으로</button>
+          <button type="button" class="btn ghost toggle" id="lockBtn" aria-pressed="false">참가자 넘김 잠그기</button>
+          <button type="button" class="btn ghost toggle" id="pauseBtn" aria-pressed="false">채팅 일시정지</button>
+        </div>
+      </section>
+
+      <section class="panel chat" aria-label="실시간 채팅">
+        <div class="ptitle"><h2>실시간 채팅</h2><span>생각과 경험을 자유롭게 나눠 주세요</span></div>
+        <div class="msgs" id="msgs" aria-live="polite"><div class="empty">채팅을 불러오는 중입니다.</div></div>
+        <div id="paused" class="paused" hidden>지금은 발표자가 채팅을 잠시 멈췄습니다.</div>
+        <form class="compose" id="joinForm">
+          <label for="nameIn" class="sr">성함</label>
+          <div class="row">
+            <input id="nameIn" maxlength="20" autocomplete="name" placeholder="성함을 입력하세요">
+            <button type="submit" class="btn">채팅 참여</button>
+          </div>
+        </form>
+        <form class="compose" id="sendForm" hidden>
+          <span class="note" id="meNote"></span>
+          <label for="msgIn" class="sr">메시지</label>
+          <div class="row">
+            <input id="msgIn" maxlength="300" placeholder="메시지를 입력하세요" autocomplete="off">
+            <button type="submit" class="icon" aria-label="보내기" style="background:var(--accent);color:var(--on-accent);border-color:var(--accent)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div class="right">
+      <section class="panel plan" aria-label="교안">
+        <div class="ptitle"><h2>교안</h2><span>보고 있는 슬라이드 부분이 강조됩니다</span></div>
+        <div class="plan-scroll" id="plan"></div>
+      </section>
+      <section class="panel links" aria-label="실습 링크">
+        <div class="ptitle"><h2>실습 링크</h2><span>누르면 새 탭에서 열립니다</span></div>
+        <nav class="lgrid">
+          <a class="lk" href="https://www.aiedap.or.kr/" target="_blank" rel="noopener">
+            <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span>
+            <span class="tx">AIEDAP 홈페이지</span>
+            <svg class="ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+          </a>
+          <a class="lk" href="https://6lens.netlify.com" target="_blank" rel="noopener">
+            <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+            <span class="tx">렌즈 게임</span>
+            <svg class="ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+          </a>
+          <a class="lk" href="board/index.html" target="_blank" rel="noopener">
+            <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.6"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/></svg></span>
+            <span class="tx">모둠별 게시판</span>
+            <svg class="ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+          </a>
+        </nav>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="zoom" id="zoom" hidden>
+  <img id="zoomImg" alt="">
+  <button type="button" class="x" id="zoomClose">닫기 (Esc)</button>
+  <div class="zc"><button type="button" id="zPrev" aria-label="이전">‹</button><span id="zCount"></span><button type="button" id="zNext" aria-label="다음">›</button></div>
+</div>
+
+<div class="modal" id="loginModal" hidden>
+  <form class="mbox" id="loginForm">
+    <h2>발표자 로그인</h2>
+    <p class="sub" style="margin:0">강사만 사용합니다. 로그인하면 내가 넘기는 슬라이드가 참가자 화면에 함께 보입니다.</p>
+    <label for="pwIn" class="sub">비밀번호</label>
+    <input id="pwIn" type="password" autocomplete="current-password">
+    <div class="err" id="loginErr" role="alert"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" class="btn ghost" id="loginCancel">취소</button>
+      <button type="submit" class="btn">로그인</button>
+    </div>
+  </form>
+</div>
+
+<script src="firebase-config.js"></script>
+<script>
+const TOTAL = 30;
+const NOTES = {"4": {"title": "여는 질문", "html": "<p>내 교실 맨 앞자리에 챗GPT가 떡하니 앉아 있다고 생각해볼까요?<\/p><p><strong>&quot;챗GPT가 교실에 앉아 있습니다. 무엇을 가르치시겠습니까?&quot;<\/strong><\/p><p>옆 선생님과 30초 동안 생각을 나눠 보시기 바랍니다. 정답을 찾는 질문이 아니라, 오늘 활동의 문을 여는 질문입니다.<\/p>"}, "5": {"title": "지금 우리가 하는 교육은 여전히 유효한가?", "html": "<p>지금 우리가 하는 교육은 여전히 유효할까요?<\/p><p>사진처럼 같은 책상에 앉아 같은 문제를 푸는 모습은 20세기 교육이 거둔 성공의 상징이었습니다.<\/p><p>그런데 정답을 빠르고 정확하게 찾는 능력은 이제 AI가 가장 잘하는 일이 되었습니다. 그래서 20세기의 성공이 지금은 오히려 문제가 됩니다.<\/p><p><strong>우리가 AI 시대에 가장 빠르게 도태될 사람을 길러 온 것은 아닌지<\/strong>, 뼈아프지만 돌아볼 때입니다.<\/p>"}, "6": {"title": "수업을 바라보는 질문이 바뀝니다", "html": "<p>그렇다면 수업을 바라보는 질문도 달라져야 합니다.<\/p><p>&#x27;무엇을 알고 있는가&#x27;는 &#x27;<strong>너만의 독창성은 무엇인가<\/strong>&#x27;로, &#x27;결과물이 완성되었는가&#x27;는 &#x27;<strong>과정과 근거가 보이는가<\/strong>&#x27;로, &#x27;디지털 도구를 사용할 수 있는가&#x27;를 넘어, 이제는 &#x27;<strong>AI와 함께 협업하여 무엇을 할 것인가<\/strong>&#x27;를 물어야 합니다.<\/p><p>AI로 격변하는 시대, 우리 수업이 확인해야 할 것도 함께 옮겨 가고 있습니다.<\/p>"}, "7": {"title": "그래서 필요한 자세", "html": "<p>특정 지식이나 도구보다 더 중요한 것은 &#x27;자세&#x27;입니다.<\/p><p><strong>어떤 시대가 오더라도 새로운<\/strong> <strong>지식을 배우는 것을 기꺼이 즐기는 사람<\/strong>,<\/p><p>그리고 <strong>자신이 가진 지식과 정보를 나누고 확장하며 사회와 연대<\/strong>하는 사람입니다.<\/p><p>이는 우리가 길러야 할 학생의 모습이자, 바로 우리 교사에게 필요한 모습이기도 합니다.<\/p>"}, "8": {"title": "좋은 AI 융합수업은 혼자 완성되지 않습니다", "html": "<p><strong>좋은 AI 융합수업은 혼자 완성되지 않습니다.<\/strong><\/p><p>좋은 수업은 교사 한 사람의 눈만으로는 다 보기 어렵기 때문입니다.<\/p><p>그래서 오늘은 1-2차시에 익힌 6가지 렌즈로, 서로의 수업을 함께 들여다보겠습니다.<\/p>"}, "9": {"title": "학습 목표", "html": "<p>이번 연수의 학습 목표는 세 가지입니다.<\/p><p>첫째, <strong>내 수업 사례와 도움받고 싶은 질문을 동료에게 공유하는 것<\/strong>입니다<\/p><p>둘째, <strong>6가지 렌즈로 동료 수업의 강점과 고려할 점을 근거와 함께 나누는 것<\/strong>입니다.<\/p><p>셋째, <strong>협의를 바탕으로 내 수업의 개선 방향 3가지를 정하는 것<\/strong>입니다.<\/p><p>오늘 손에 쥐고 가실 최종 산출물이 바로 이 &#x27;개선 방향 3가지&#x27;이며, 실천 및 성찰 보고서와 이후 Re-design 모듈로 이어집니다.<\/p>"}, "11": {"title": "PART 2 · 렌즈 게임", "html": "<p>1-2차시에서 우수 사례를 살펴볼 때 썼던 <strong>6가지 성찰 관점<\/strong>, 기억나십니까?<\/p><p>그 렌즈들을 게임으로 다시 꺼내 보겠습니다.<\/p><p>조금 전까지 진지한 이야기를 나눴으니, 잠시 머리를 식히며 즐겁게 떠올려 보시기 바랍니다.<\/p>"}, "12": {"title": "6가지 관점 찾기 게임", "html": "<p>게임의 무대는 &#x27;AI 융합수업 연구학교&#x27;입니다.<\/p><p>그런데 이 학교에서 수업을 들여다보는 6개의 성찰 렌즈가 모두 사라져 버렸습니다.<\/p><p>선생님들께서는 교실 곳곳의 문제를 해결하며 사라진 렌즈 6개를 모두 되찾아 주셔야 합니다.<\/p><p>렌즈를 다 모으고 나면, 여섯 관점으로 수업을 다시 보는 눈도 함께 되찾게 됩니다.<\/p>"}, "13": {"title": "이렇게 플레이해요", "html": "<p>머리 위에 느낌표(!)가 NPC에게 말을 걸면 됩니다.<\/p><p>교실을 돌며 미션을 수행하고, 렌즈 보관대를 6개 모두 채우면 완료입니다.<\/p><p>방향키로 이동하고, 스페이스 바로 점프하며, F 키로 말 걸기와 줄기를 할 수 있습니다.<\/p><p>찾은 렌즈와 진행 경과는 화면 오른쪽 위에서 확인하실 수 있습니다.<\/p>"}, "14": {"title": "6가지 분석 렌즈 (1/2)", "html": "<p><strong>렌즈 1 · 교육적 관점<\/strong><\/p><p>핵심 질문은 &#x27;AI 활용이 학습목표 달성에 어떻게 기여했는가&#x27;입니다.<\/p><p>AI를 썼다는 사실보다, AI 덕분에 그 교과다운 배움이 일어났는지가 더 중요합니다.<\/p><p><strong>렌즈 2 · 학습자 관점<\/strong><\/p><p>&#x27;학생이 스스로 생각하고 선택할 기회가 어디에 있었는가&#x27;를 묻습니다.<\/p><p>AI가 대신 생각해 주는 수업인지, 학생이 AI와 함께 생각하는 수업인지를 가르는 렌즈입니다.<\/p><p><strong>렌즈 3 · 기술 관점<\/strong><\/p><p>&#x27;활용한 기술이 수업 목적과 학생 수준에 맞았는가&#x27;를 묻습니다.<\/p><p>가장 화려한 도구보다 우리 반에 가장 알맞은 도구가 좋은 도구입니다.<\/p>"}, "15": {"title": "6가지 분석 렌즈 (2/2)", "html": "<p><strong>렌즈 4 · 평가 관점<\/strong><\/p><p>&#x27;학생의 사고 과정과 AI 활용 과정을 어떻게 확인했는가&#x27;를 묻습니다.<\/p><p>어떤 종류의 학습 증거를 모았는지, 그리고 결과물뿐 아니라 과정을 남기는 방법이 설계되어 있었는지를 살펴봅니다.<\/p><p><strong>렌즈 5 · 윤리적 관점<\/strong><\/p><p>&#x27;AI 활용의 한계와 책임을 어떻게 다루었는가&#x27;를 묻습니다.<\/p><p>AI의 오류와 편향, 저작권, 개인정보에 대해 학생에게 안내했는지, 문제가 생겼을 때 어떻게 대응했는지를 확인합니다.<\/p><p><strong>렌즈 6 · 실행 관점<\/strong><\/p><p>&#x27;시간·기기·학생 여건에서 실행 가능한 설계였는가&#x27;를 묻습니다.<\/p><p>계획한 차시와 실제로 걸린 차시에 차이가 있었는지, 다른 학교나 학급에서 재현하려면 어떤 조건이 필요한지를 살펴봅니다.<\/p>"}, "16": {"title": "렌즈 게임 정리", "html": "<p>여섯 개의 성찰 관점은 수업을 평가하는 잣대가 아니라, <strong>좋은 질문을 던지기 위한 출발점<\/strong>입니다.<\/p><p>잠시 후 동료 피드백에서도 &quot;좋았어요&quot;에서 멈추지 말고, 여섯 개의 렌즈를 근거로 강점과 질문을 나눠 주시기 바랍니다.<\/p>"}, "17": {"title": "PART 3 · 사례 공유하기", "html": "<p>이제 AIEDAP 홈페이지의 공유마당에 내 수업을 올리고, 우리 모둠원들의 수업안을 내려받겠습니다.<\/p><p>동료의 수업안을 미리 가지고 있어야 모둠 피드백 시간이 훨씬 깊어집니다.<\/p>"}, "18": {"title": "공유 전, 두 가지를 확인해요", "html": "<p>첫째는 <strong>학생 정보 비식별 처리<\/strong>입니다. 학생 이름이나 사진, 장애 관련 정보가 지도안에 남아 있지 않은지 반드시 확인해 주시기 바랍니다.<\/p><p>둘째는 <strong>모든 항목 입력<\/strong>입니다. 모든 내용이 입력되어 있어야 공유마당에 공유됩니다.<\/p>"}, "19": {"title": "STEP 1 · 나의 수업 보관함에서 시작해요", "html": "<p>먼저 AIEDAP 홈페이지에 접속합니다.<\/p><p>왼쪽 메뉴에서 &#x27;<strong>나의 수업 보관함<\/strong>&#x27;을 열어 주시기 바랍니다.<\/p>"}, "20": {"title": "STEP 2 · 공유마당에 공유하기", "html": "<p>수업안 상세 화면으로 들어가 아래쪽으로 내려가시면 <strong>&#x27;공유마당에 공유하기&#x27;<\/strong> 버튼이 있습니다.<\/p><p>이 버튼을 누르시면 내 수업이 공유마당에 올라갑니다.<\/p>"}, "21": {"title": "STEP 3 · 모둠원 수업안 내려받기", "html": "<p>공유마당에서 내 자료가 잘 올라갔는지 먼저 확인해 주시기 바랍니다.<\/p><p>그다음 <strong>모둠원의 이름이나 수업명으로 검색<\/strong>해서, 모둠원들의 지도안을 모두 내려받아 주십시오.<\/p>"}, "22": {"title": "PART 4 · 모둠별 피드백", "html": "<p>이제 오늘의 하이라이트, 모둠별 피드백 시간입니다.<\/p><p>동료의 렌즈를 빌려 내 수업을 다시 보고, 개선 방향을 찾아가 보겠습니다.<\/p>"}, "23": {"title": "모둠별 사이트로 이동해요", "html": "<p><strong>연수 사이트 메인 화면에서 모둠별 활동 사이트로 이동합니다.<\/strong><\/p><p>이동 전에 세 가지를 체크해 주십시오.<\/p><p><strong>내 수업안을 공유마당에 올렸는지<\/strong>, <strong>모둠원 수업안을 전부 내려받았는지<\/strong>, <strong>연수 사이트에서 우리 모둠 페이지를 열었는지<\/strong>입니다.<\/p><p>퍼실리테이터 선생님께서는 모든 모둠원이 준비되었는지 확인해 주시고, 아직인 분이 계시면 다운로드를 함께 도와주시기 바랍니다.<\/p>"}, "24": {"title": "모둠 사이트의 내 페이지에 두 가지를 입력해요", "html": "<p>첫 번째는 <strong>내 수업 한 줄 소개<\/strong>입니다. 어떤 교과·학년에서 AI를 어떻게 활용했는지, 예를 들어 &quot;생성형 AI로 가설을 세우고 실험으로 검증한 수업&quot;처럼 한 줄로 써 주시면 됩니다.<\/p><p>두 번째는 <strong>도움받고 싶은 질문<\/strong>으로, 설계나 실행에서 실제로 고민했던 한 가지를 적습니다.<\/p>"}, "25": {"title": "내 수업 발표하기", "html": "<p>이제 한 사람씩 돌아가며 내 수업을 발표하겠습니다.<\/p><p>먼저 교과·학년, AI를 활용한 방식, 주요 활동 등 <strong>수업 개요<\/strong>를 소개해 주십시오. 이어서 학생 반응이 좋았던 <strong>잘 작동한 장면<\/strong> 하나를 들려주시기 바랍니다.<\/p><p>마지막으로 동료에게 묻고 싶은 고민, 즉 <strong>도움받고 싶은 질문<\/strong> 하나로 발표를 마무리합니다. 시간은 타이머로 안내해 드리니, 핵심 위주로 이야기해 주시기 바랍니다.<\/p>"}, "26": {"title": "피드백은 이렇게 써요", "html": "<p><strong>배우고 싶은 점<\/strong>은 내 수업에도 반영하고 싶은 부분으로, &quot;이 도구는 우리 반에서도 효과적일 것 같아요&quot;처럼 씁니다.<\/p><p><strong>더 알고 싶은 점<\/strong>은 설명만으로는 그려지지 않는 부분으로, &quot;학생들이 처음에 어려워하지는 않았나요?&quot;처럼 묻습니다.<\/p><p><strong>적용 아이디어<\/strong>는 발표자의 질문에 대한 대안과 제안으로, &quot;이렇게 바꿔서 적용해 보면 어떨까요?&quot;처럼 건넵니다.<\/p><p>부족한 점을 지적하기보다 잘 작동한 요소를 먼저 말해 주시고, 세 가지를 쓴 뒤에는 <strong>6가지 성찰 관점으로도 선생님의 수업을 피드백<\/strong>해 주시기 바랍니다.<\/p>"}, "27": {"title": "동료 피드백 작성하기", "html": "<p><strong>6가지 성찰 관점을 근거로 삼아 피드백을 더해 주시기 바랍니다. <\/strong><\/p>"}, "28": {"title": "개선 방향 설정하고 나누기", "html": "<p>이제 동료들의 피드백을 바탕으로 <strong>내 수업의 개선 방향 3가지<\/strong>를 정해 보겠습니다.<\/p><p>방향을 정하셨다면, 모둠 안에서 한 분씩 돌아가며 내 개선 방향 3가지를 소개해 주십시오.<\/p><p>발표를 들은 동료들은 응원의 한 마디나 추가 제언을 더해 주시기 바랍니다.<\/p><p>여기서 정리한 방향은 <strong>실천 및 성찰 보고서와 Re-design 모듈에서 다시 활용<\/strong>됩니다.<\/p>"}, "29": {"title": "나의 실천 방향 작성하기", "html": "<p>이제 모인 피드백을 개별로 확인하고, 나의 실천 방향을 AIEDAP에 기록해 두겠습니다.<\/p><p>홈페이지의 <strong>&#x27;AI 융합수업 성찰해보기&#x27;<\/strong> 메뉴에서 내 수업을 선택한 뒤, 잘된 점·개선할 점·다음 수업 계획 칸을 채워 주시기 바랍니다.<\/p><p>이때 <strong>무엇을 바꿀지, 어느 수업 단계에서 적용할지, 어떻게 운영할지, 무엇으로 개선 여부를 확인할지<\/strong>가 드러나도록 써 주십시오. 이 네 가지가 분명할수록 다음 수업에서 정말로 실천할 수 있는 계획이 됩니다.<\/p>"}, "30": {"title": "수고하셨습니다", "html": "<p><strong>공자는 『논어』에서 &quot;배우기만 하고 생각하지 않으면 얻는 것이 없고, 생각하기만 하고 배우지 않으면 위태롭다&quot;고 말했습니다.<\/strong> 오늘 우리는 동료의 수업에서 배우고, 그 배움을 내 수업에 비추어 생각해 보았습니다.<\/p><p>오늘 함께한 귀한 시간이,  각자 선생님들의 교실에서 성장의 첫걸음이 되기를 응원하며 마치겠습니다. 감사합니다.<\/p>"}};
+const CFG = window.FIREBASE_CONFIG || null;
+
+const $ = id => document.getElementById(id);
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.append(s); }); }
+function banner(t) { const b = $('banner'); b.textContent = t; b.hidden = !t; }
+const fmt = ms => { try { return new Date(ms).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } };
+
+/* ---------- 상태 ---------- */
+const S = {
+  live: { slide: 1, recall: 0, lock: false, chatPaused: false },
+  view: 1, following: true, seenRecall: null,
+  presenter: false, name: lsGet('live-name') || '', msgs: [], mineIds: new Set(JSON.parse(lsGet('live-mine') || '[]'))
+};
+
+/* ---------- 저장소: Firebase 또는 체험판(같은 브라우저 탭끼리 동기화) ---------- */
+async function firebaseStore() {
+  const V = '10.12.2';
+  await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-app-compat.js`);
+  await Promise.all([
+    loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-firestore-compat.js`),
+    loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-auth-compat.js`)
+  ]);
+  firebase.initializeApp(CFG);
+  const db = firebase.firestore(), auth = firebase.auth();
+  const stateRef = db.collection('live').doc('state');
+  const chat = stateRef.collection('chat');
+  return {
+    mode: 'live',
+    watchState(cb, err) { return stateRef.onSnapshot(s => cb(s.exists ? s.data() : {}), err); },
+    setState: p => stateRef.set(p, { merge: true }),
+    watchChat(cb, err) {
+      return chat.orderBy('at', 'desc').limit(30).onSnapshot(s => cb(s.docs.map(d => { const x = d.data(); return { id: d.id, name: x.name, text: x.text, host: !!x.host, at: x.at ? x.at.toMillis() : Date.now() }; }).reverse()), err);
+    },
+    async send(name, text, host) { const r = await chat.add({ name, text, host: !!host, at: firebase.firestore.FieldValue.serverTimestamp() }); return r.id; },
+    del: id => chat.doc(id).delete(),
+    onAuth: cb => auth.onAuthStateChanged(u => cb(!!u && u.email === window.PRESENTER_EMAIL)),
+    login: pw => auth.signInWithEmailAndPassword(window.PRESENTER_EMAIL, pw),
+    logout: () => auth.signOut()
+  };
+}
+function demoStore() {
+  const K = 'live-demo-v1';
+  let d; try { d = JSON.parse(lsGet(K)); } catch (e) {}
+  if (!d) d = { state: { slide: 1, recall: 0, lock: false, chatPaused: false }, chat: [
+    { id: 'd1', name: '(예시) 김OO', text: '여는 질문 생각해 보니 "질문하는 법"을 가르치고 싶어요.', host: false, at: Date.now() - 120000 },
+    { id: 'd2', name: '강사', text: '좋은 생각입니다. 다른 선생님들 생각도 남겨 주세요!', host: true, at: Date.now() - 60000 }
+  ] };
+  const sl = new Set(), cl = new Set();
+  const save = () => { lsSet(K, JSON.stringify(d)); sl.forEach(f => f(d.state)); cl.forEach(f => f(d.chat.slice(-40))); };
+  window.addEventListener('storage', e => { if (e.key === K) { try { d = JSON.parse(e.newValue); } catch (x) {} sl.forEach(f => f(d.state)); cl.forEach(f => f(d.chat.slice(-40))); } });
+  let authCb = null;
+  return {
+    mode: 'demo',
+    watchState(cb) { sl.add(cb); setTimeout(() => cb(d.state)); },
+    async setState(p) { Object.assign(d.state, p); save(); },
+    watchChat(cb) { cl.add(cb); setTimeout(() => cb(d.chat.slice(-40))); },
+    async send(name, text, host) { const id = Math.random().toString(36).slice(2); d.chat.push({ id, name, text, host: !!host, at: Date.now() }); save(); return id; },
+    async del(id) { d.chat = d.chat.filter(m => m.id !== id); save(); },
+    onAuth(cb) { authCb = cb; cb(sessionStorage.getItem('demo-presenter') === '1'); },
+    async login(pw) { if (pw !== 'demo') throw { code: 'auth/wrong-password' }; try { sessionStorage.setItem('demo-presenter', '1'); } catch (e) {} authCb && authCb(true); },
+    async logout() { try { sessionStorage.removeItem('demo-presenter'); } catch (e) {} authCb && authCb(false); }
+  };
+}
+
+/* ---------- 슬라이드 ---------- */
+const cache = {};
+function preload(n) { if (n >= 1 && n <= TOTAL && !cache[n]) { const i = new Image(); i.src = `slides/${n}.webp`; cache[n] = i; } }
+function render() {
+  const n = S.view;
+  $('slideImg').src = `slides/${n}.webp`;
+  $('slideImg').alt = `슬라이드 ${n}` + (NOTES[n] ? ` · ${NOTES[n].title}` : '');
+  $('count').textContent = `${n} / ${TOTAL}`;
+  preload(n + 1); preload(n + 2); preload(n - 1);
+  const locked = S.live.lock && !S.presenter;
+  $('prevBtn').disabled = locked || n <= 1;
+  $('nextBtn').disabled = locked || n >= TOTAL;
+  const st = $('status');
+  if (S.presenter) { st.className = 'status follow'; st.textContent = '● 참가자들이 이 화면을 따라옵니다'; }
+  else if (locked) { st.className = 'status lock'; st.textContent = '🔒 발표자가 화면을 고정했습니다'; }
+  else if (S.following) { st.className = 'status follow'; st.textContent = '● 발표자 화면을 따라가는 중'; }
+  else { st.className = 'status free'; st.textContent = `자유 보기 · 발표자는 ${S.live.slide}번`; }
+  $('backBtn').hidden = S.presenter || S.following;
+  if (!$('zoom').hidden) { $('zoomImg').src = `slides/${n}.webp`; $('zCount').textContent = `${n} / ${TOTAL}`; }
+  highlightPlan();
+}
+function go(n) {
+  n = Math.max(1, Math.min(TOTAL, n));
+  if (S.presenter) {
+    S.view = n; render();
+    store.setState({ slide: n }).catch(() => banner('슬라이드 위치를 보내지 못했습니다. 인터넷 연결을 확인해 주세요.'));
+    return;
+  }
+  if (S.live.lock) return;
+  S.view = n; S.following = (n === S.live.slide); render();
+}
+function backToPresenter() { S.following = true; S.view = S.live.slide; render(); }
+$('prevBtn').onclick = () => go(S.view - 1);
+$('nextBtn').onclick = () => go(S.view + 1);
+$('backBtn').onclick = backToPresenter;
+
+/* 크게 보기 */
+$('stage').onclick = () => { $('zoom').hidden = false; render(); const z = $('zoom'); if (z.requestFullscreen) z.requestFullscreen().catch(() => {}); };
+function closeZoom() { $('zoom').hidden = true; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+$('zoomClose').onclick = closeZoom;
+$('zPrev').onclick = () => go(S.view - 1);
+$('zNext').onclick = () => go(S.view + 1);
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && !$('zoom').hidden) $('zoom').hidden = true; });
+document.addEventListener('keydown', e => {
+  const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  if (e.key === 'Escape' && !$('zoom').hidden) { closeZoom(); return; }
+  if (['ArrowRight', 'PageDown'].includes(e.key) || (e.key === ' ' && S.presenter)) { e.preventDefault(); go(S.view + 1); }
+  else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(S.view - 1); }
+});
+
+/* ---------- 교안 ---------- */
+function buildPlan() {
+  const box = $('plan'); const parts = [];
+  for (let n = 1; n <= TOTAL; n++) {
+    const x = NOTES[n];
+    if (x) parts.push(`<article class="sec" id="sec-${n}"><div class="num">슬라이드 ${n}<span class="now" hidden>지금 보는 중</span></div><h3>${esc(x.title)}</h3><div class="body">${x.html}</div></article>`);
+    else parts.push(`<article class="sec gap" id="sec-${n}"><div class="num">슬라이드 ${n} · 교안 없음<span class="now" hidden>지금 보는 중</span></div></article>`);
+  }
+  box.innerHTML = parts.join('');
+}
+let lastHi = 0;
+function highlightPlan() {
+  if (lastHi === S.view) return;
+  const prev = $('sec-' + lastHi); if (prev) { prev.classList.remove('on'); prev.querySelector('.now').hidden = true; }
+  const cur = $('sec-' + S.view);
+  if (cur) {
+    cur.classList.add('on'); cur.querySelector('.now').hidden = false;
+    const box = $('plan');
+    box.scrollTo({ top: cur.offsetTop - box.offsetTop - 4 });
+  }
+  lastHi = S.view;
+}
+
+/* ---------- 채팅 ---------- */
+function renderChat() {
+  const box = $('msgs');
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  if (!S.msgs.length) { box.innerHTML = '<div class="empty">아직 메시지가 없습니다. 첫 이야기를 남겨 주세요.</div>'; return; }
+  box.replaceChildren(...S.msgs.map(m => {
+    const mine = S.mineIds.has(m.id);
+    const el = document.createElement('div');
+    el.className = 'msg' + (mine ? ' mine' : '') + (m.host ? ' host' : '');
+    const meta = document.createElement('div'); meta.className = 'meta';
+    if (m.host) { const h = document.createElement('span'); h.className = 'host-tag'; h.textContent = '강사'; meta.append(h); }
+    meta.append(document.createTextNode(`${m.name} · ${fmt(m.at)}`));
+    if (S.presenter) {
+      const d = document.createElement('button'); d.type = 'button'; d.className = 'del'; d.textContent = '삭제';
+      d.onclick = () => { if (d.dataset.armed) store.del(m.id).catch(() => banner('삭제하지 못했습니다.')); else { d.dataset.armed = '1'; d.textContent = '한 번 더 누르면 삭제'; setTimeout(() => { delete d.dataset.armed; d.textContent = '삭제'; }, 3000); } };
+      meta.append(d);
+    }
+    const b = document.createElement('div'); b.className = 'bubble'; b.textContent = m.text;
+    el.append(meta, b); return el;
+  }));
+  if (atBottom || renderChat.first !== false) { box.scrollTop = box.scrollHeight; renderChat.first = false; }
+}
+function renderCompose() {
+  const joined = !!S.name || S.presenter;
+  $('joinForm').hidden = joined;
+  $('sendForm').hidden = !joined;
+  $('meNote').textContent = S.presenter ? '강사로 참여 중' : `${S.name} 님으로 참여 중`;
+  const paused = S.live.chatPaused && !S.presenter;
+  $('paused').hidden = !paused;
+  $('msgIn').disabled = paused;
+}
+$('joinForm').onsubmit = e => {
+  e.preventDefault();
+  const n = $('nameIn').value.trim().replace(/\s+/g, ' ').slice(0, 20);
+  if (!n) { $('nameIn').focus(); return; }
+  S.name = n; lsSet('live-name', n); renderCompose(); $('msgIn').focus();
+};
+let lastSend = 0;
+$('sendForm').onsubmit = async e => {
+  e.preventDefault();
+  const t = $('msgIn').value.trim().slice(0, 300);
+  if (!t) return;
+  if (Date.now() - lastSend < 2000) { banner('메시지는 2초에 한 번씩 보낼 수 있습니다.'); setTimeout(() => banner(''), 2000); return; }
+  lastSend = Date.now();
+  $('msgIn').value = '';
+  try {
+    const id = await store.send(S.presenter ? '강사' : S.name, t, S.presenter);
+    S.mineIds.add(id); lsSet('live-mine', JSON.stringify([...S.mineIds].slice(-200))); renderChat();
+  } catch (err) { $('msgIn').value = t; banner(S.live.chatPaused ? '지금은 채팅이 멈춰 있습니다.' : '메시지를 보내지 못했습니다. 다시 눌러 주세요.'); }
+};
+
+/* ---------- 발표자 ---------- */
+$('presenterBtn').onclick = () => {
+  if (S.presenter) { store.logout(); return; }
+  $('loginModal').hidden = false; $('loginErr').textContent = ''; $('pwIn').value = ''; setTimeout(() => $('pwIn').focus(), 30);
+};
+$('loginCancel').onclick = () => { $('loginModal').hidden = true; };
+$('loginForm').onsubmit = async e => {
+  e.preventDefault();
+  try { await store.login($('pwIn').value); $('loginModal').hidden = true; }
+  catch (err) { $('loginErr').textContent = '비밀번호가 맞지 않습니다.'; }
+};
+$('recallBtn').onclick = () => store.setState({ slide: S.view, recall: (S.live.recall || 0) + 1 });
+$('lockBtn').onclick = () => store.setState({ lock: !S.live.lock, slide: S.view });
+$('pauseBtn').onclick = () => store.setState({ chatPaused: !S.live.chatPaused });
+function setPresenter(on) {
+  S.presenter = on;
+  $('pbar').hidden = !on; $('roleChip').hidden = !on;
+  $('presenterBtn').textContent = on ? '발표자 로그아웃' : '발표자 로그인';
+  if (on) { S.view = S.live.slide || 1; S.following = true; }
+  render(); renderChat(); renderCompose();
+}
+function renderPresenterBar() {
+  $('lockBtn').setAttribute('aria-pressed', S.live.lock ? 'true' : 'false');
+  $('lockBtn').textContent = S.live.lock ? '참가자 넘김 잠금 중 (풀기)' : '참가자 넘김 잠그기';
+  $('pauseBtn').setAttribute('aria-pressed', S.live.chatPaused ? 'true' : 'false');
+  $('pauseBtn').textContent = S.live.chatPaused ? '채팅 멈춤 중 (다시 열기)' : '채팅 일시정지';
+}
+
+/* ---------- 시작 ---------- */
+let store;
+(async function start() {
+  buildPlan();
+  try { store = CFG ? await firebaseStore() : demoStore(); }
+  catch (e) { store = demoStore(); banner('실시간 서버에 연결하지 못했습니다. 새로고침해 주세요.'); }
+  if (store.mode === 'demo') banner('체험판입니다. 같은 브라우저의 다른 탭과만 동기화됩니다. 발표자 비밀번호는 demo 입니다.');
+  if (S.name) $('nameIn').value = S.name;
+  store.watchState(st => {
+    const prevRecall = S.seenRecall;
+    S.live = { slide: st.slide || 1, recall: st.recall || 0, lock: !!st.lock, chatPaused: !!st.chatPaused };
+    if (S.presenter) { renderPresenterBar(); renderCompose(); render(); return; }
+    if (prevRecall !== null && S.live.recall !== prevRecall) S.following = true;
+    if (S.live.lock) S.following = true;
+    S.seenRecall = S.live.recall;
+    if (S.following) S.view = S.live.slide;
+    render(); renderCompose();
+  }, () => banner('발표자 화면을 불러오지 못했습니다. 새로고침해 주세요.'));
+  store.watchChat(list => { S.msgs = list; renderChat(); }, () => banner('채팅을 불러오지 못했습니다. 새로고침해 주세요.'));
+  store.onAuth(on => { setPresenter(on); renderPresenterBar(); });
+  render(); renderCompose();
+})();
+</script>
+</body>
+</html>

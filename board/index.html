@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23A84E24%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%277%27 fill=%27none%27 stroke=%27white%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<title>AI 융합수업 함께 들여다보기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 상단 헤더 + 선생님 카드 줄, 그 아래 한 선생님의 수업 페이지가 세로로 흐름 (공유 → 동료 피드백 → 관점별 피드백 → 체크 모음 → 개선 방향 → 저장) */
+:root{
+  --bg:#F6EEE7; --surface:#FFFFFF; --surface-2:#FCF8F4; --line:#EEE2D8; --line-strong:#E0CDBE;
+  --fg:#2A211C; --muted:#5E5048; --faint:#9A8A7E;
+  --accent:#A84E24; --accent-strong:#7E3A1A; --accent-soft:#FDF0E6; --accent-tint:#F9E2D2; --on-accent:#FFFFFF;
+  --ok:#4F6B3F; --ok-soft:#EAF0E6; --warn-soft:#FFF6D9; --warn-line:#E9D58F;
+  --shadow:0 1px 2px rgba(90,50,20,.08);
+  --font:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1E1814; --surface:#2A221D; --surface-2:#322822; --line:#3E322B; --line-strong:#54443A;
+  --fg:#F3E9E1; --muted:#C9B9AD; --faint:#8F7F73;
+  --accent:#E89A6E; --accent-strong:#F2B38E; --accent-soft:#3A2A21; --accent-tint:#4A3326; --on-accent:#2A1408;
+  --ok:#A8C79A; --ok-soft:#26301F; --warn-soft:#3A331C; --warn-line:#6B5E2A;
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1E1814; --surface:#2A221D; --surface-2:#322822; --line:#3E322B; --line-strong:#54443A;
+  --fg:#F3E9E1; --muted:#C9B9AD; --faint:#8F7F73;
+  --accent:#E89A6E; --accent-strong:#F2B38E; --accent-soft:#3A2A21; --accent-tint:#4A3326; --on-accent:#2A1408;
+  --ok:#A8C79A; --ok-soft:#26301F; --warn-soft:#3A331C; --warn-line:#6B5E2A;
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6;padding:20px 16px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.35}
+.muted{color:var(--muted)}
+
+.banner{background:var(--warn-soft);border:1px solid var(--warn-line);border-radius:10px;padding:10px 14px;font-size:14px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+header.top h1{font-size:clamp(20px,3vw,26px);font-weight:700;letter-spacing:-.01em}
+.group-badge{display:inline-block;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;margin-right:8px;vertical-align:middle}
+.me{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.link-btn{background:none;border:0;padding:6px 4px;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+
+.cards{display:flex;flex-wrap:wrap;gap:10px}
+.tcard{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 16px;border:1px solid var(--line-strong);background:var(--surface);border-radius:12px;font-weight:600;box-shadow:var(--shadow)}
+.tcard:hover{border-color:var(--accent)}
+.tcard[aria-current="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.tcard .tag{font-size:11px;font-weight:700;letter-spacing:.04em;padding:1px 7px;border-radius:999px;background:var(--accent-tint);color:var(--accent-strong)}
+.tcard[aria-current="true"] .tag{background:var(--on-accent);color:var(--accent)}
+.cards-empty{color:var(--muted);font-size:14px}
+
+.page{display:flex;flex-direction:column;gap:20px}
+.page-head{text-align:center;padding:12px 0 4px;display:flex;flex-direction:column;gap:6px;align-items:center}
+.page-head h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.015em}
+.mine-chip{font-size:13px;font-weight:600;color:var(--accent-strong);background:var(--accent-soft);border:1px solid var(--accent-tint);padding:2px 10px;border-radius:999px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel-title{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px}
+.panel-title h3{font-size:18px;font-weight:700}
+.panel-title p{margin:0;font-size:13px;color:var(--muted)}
+
+.share-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.field label,.field .label{font-weight:700;font-size:15px}
+textarea{width:100%;min-height:96px;resize:vertical;border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;background:var(--surface-2);line-height:1.6}
+textarea::placeholder{color:var(--faint)}
+textarea:focus{background:var(--surface)}
+.readonly{min-height:60px;border:1px dashed var(--line-strong);border-radius:10px;padding:10px 12px;background:var(--surface-2);white-space:pre-wrap;word-break:break-word}
+.readonly.empty{color:var(--faint)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.btn{min-height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);font-weight:600}
+.btn:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn:disabled{opacity:.5;cursor:default}
+.saved{font-size:13px;color:var(--ok);font-weight:600}
+
+.peer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.col{display:flex;flex-direction:column;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.col h4{margin:0;font-size:15px;font-weight:700}
+.col .desc{margin:0;font-size:13px;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;min-width:0}
+.item .body{flex:1;min-width:0}
+.item .who{font-size:13px;font-weight:700;color:var(--accent-strong)}
+.item .who time{font-weight:400;color:var(--muted);margin-left:6px;font-size:12px}
+.item .text{white-space:pre-wrap;word-break:break-word}
+.item .del{background:none;border:0;padding:2px 4px;font-size:12px;color:var(--muted);text-decoration:underline;flex:none}
+.item .del.armed{color:#B3261E;font-weight:700}
+.item.checked{border-color:var(--accent);background:var(--accent-soft)}
+.check{width:22px;height:22px;margin-top:2px;accent-color:var(--accent);flex:none}
+.empty-list{font-size:13px;color:var(--faint);padding:4px 2px}
+.composer{display:flex;flex-direction:column;gap:8px}
+.composer textarea{min-height:72px}
+.owner-note{font-size:13px;color:var(--muted);background:var(--surface);border:1px dashed var(--line-strong);border-radius:10px;padding:8px 10px}
+
+.lens-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.lens h4{font-size:16px}
+.lens-q{margin:0;font-size:14px;line-height:1.55;color:var(--muted);padding:8px 10px;background:var(--surface);border-radius:8px;border:1px solid var(--line)}
+.add-btn{align-self:flex-start;min-height:40px;padding:0 12px;border-radius:10px;border:1px dashed var(--accent);background:transparent;color:var(--accent);font-weight:600}
+.add-btn:hover{background:var(--accent-soft)}
+
+.picked-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.picked-group h4{margin:0 0 6px;font-size:14px}
+
+.improve{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.improve .num{font-weight:700;color:var(--accent)}
+
+.export{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px 0}
+.export .btn{min-height:48px;padding:0 20px;font-size:15px}
+.export-msg{text-align:center;font-size:13px;color:var(--muted);min-height:20px}
+
+.placeholder{text-align:center;color:var(--muted);padding:40px 16px;border:1px dashed var(--line-strong);border-radius:14px;background:var(--surface)}
+
+.modal{position:fixed;inset:0;background:rgba(30,20,14,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal-box{background:var(--surface);border-radius:16px;padding:28px 24px;width:min(420px,100%);display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.modal-box h2{font-size:20px}
+.modal-box input{height:48px;border:1px solid var(--line-strong);border-radius:10px;padding:0 14px;background:var(--surface-2);font-size:16px}
+.group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.group-grid .btn{min-height:52px;font-size:16px;padding:0 8px}
+.modal-box .err{color:#B3261E;font-size:13px;min-height:18px}
+
+@media (max-width:860px){
+  .peer-grid,.improve{grid-template-columns:minmax(0,1fr)}
+  .lens-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .share-grid,.picked-groups{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){.lens-grid{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:no-preference){.tcard,.btn,.add-btn{transition:background .15s,border-color .15s}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <div id="banner" class="banner" hidden></div>
+  <header class="top">
+    <h1><span id="groupBadge" class="group-badge">모둠</span>우리의 AI 융합수업, 함께 들여다보기 🔍</h1>
+    <div class="me">
+      <span id="meBox" hidden><span id="meName"></span>
+      <button type="button" class="link-btn" id="renameBtn">이름 바꾸기</button></span>
+      <button type="button" class="link-btn" id="groupBtn">모둠 바꾸기</button>
+    </div>
+  </header>
+  <nav aria-label="선생님 목록"><div class="cards" id="cards"><span class="cards-empty">선생님 목록을 불러오는 중입니다.</span></div></nav>
+  <main id="main"><div class="placeholder">위의 선생님 카드를 누르면 그 선생님의 수업 페이지가 열립니다.</div></main>
+  <section class="panel" aria-label="엑셀로 저장">
+    <div class="export">
+      <button type="button" class="btn" id="exportMine">내 피드백 엑셀로 저장</button>
+      <button type="button" class="btn ghost" id="exportAll">우리 모둠 전체 피드백 엑셀로 저장</button>
+    </div>
+    <div class="export-msg" id="exportMsg" role="status"></div>
+  </section>
+</div>
+
+<div class="modal" id="groupModal" hidden>
+  <div class="modal-box" role="dialog" aria-labelledby="groupTitle">
+    <h2 id="groupTitle">몇 모둠인가요?</h2>
+    <p class="muted" style="margin:0;font-size:14px">안내받은 모둠 번호를 눌러 주세요. 같은 모둠 선생님들끼리만 내용이 함께 보입니다.</p>
+    <div class="group-grid" id="groupGrid"></div>
+  </div>
+</div>
+
+<div class="modal" id="nameModal" hidden>
+  <form class="modal-box" id="nameForm">
+    <h2>선생님의 성함을 입력해주세요.</h2>
+    <p class="muted" style="margin:0;font-size:14px">입력한 이름으로 선생님 카드가 만들어집니다. 다른 선생님께 남기는 피드백은 이름 없이 익명으로 올라갑니다.</p>
+    <label for="nameInput" class="muted" style="font-size:13px">성함</label>
+    <input id="nameInput" autocomplete="name" placeholder="예: 김민지" maxlength="20">
+    <div class="err" id="nameErr" role="alert"></div>
+    <button type="submit" class="btn" style="min-height:48px">입장하기</button>
+  </form>
+</div>
+
+<script src="../firebase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script>
+/* ===== 설정: Firebase 프로젝트를 만든 뒤 아래에 웹 앱 설정값을 붙여 넣으면 실시간 모드로 바뀝니다. 비워 두면 체험판(이 브라우저에만 저장)으로 동작합니다. ===== */
+/* 무료 한도를 나누기 위해 1~8모둠과 9~15모둠이 서로 다른 Firebase 프로젝트를 씁니다. */
+function boardConfig(g) { const n = parseInt(g, 10); return (n >= 9 ? window.BOARD_FIREBASE_CONFIG_B : window.BOARD_FIREBASE_CONFIG_A) || null; }
+/* ===== 모둠 수: 연수 인원이 정해지면 이 숫자만 바꾸면 됩니다. ===== */
+const GROUP_COUNT = 15;
+
+let GROUP = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('group');
+    if (q) return q.replace(/[^0-9A-Za-z가-힣_-]/g, '').slice(0, 20) || null;
+    const m = (location.hash || '').match(/^#group(\w+)$/);
+    if (m) return m[1];
+  } catch (e) {}
+  return null;
+})();
+
+const PEER = [
+  { k: 'answer', t: '수업자의 질문에 대한 답변', d: '<동료에게 도움받고 싶은 질문>에 관한 대안' },
+  { k: 'learn', t: '배우고 싶은 점', d: '내 수업에 벤치마킹하고 싶은 점' },
+  { k: 'more', t: '더 알고 싶은 점', d: '궁금하거나 질문할 점' }
+];
+const LENS = [
+  { k: 'edu', e: '🎯', t: '교육적 관점', q: 'AI 활용이 학습목표 달성에 실제로 도움이 되었는가?' },
+  { k: 'learner', e: '👦', t: '학습자 관점', q: '학생이 스스로 생각하고 선택하고 판단할 기회가 충분했는가?' },
+  { k: 'tech', e: '💻', t: '기술적 관점', q: '활용한 AI·디지털 기술이 수업 목적과 학생 수준에 적절했는가?' },
+  { k: 'eval', e: '📋', t: '평가 관점', q: '학생의 결과뿐 아니라 사고 및 AI 활용 과정을 충분히 평가할 수 있었는가?' },
+  { k: 'ethics', e: '🛡️', t: '윤리적 관점', q: '오류·편향·개인정보·저작권·AI 의존 등 고려하지 못한 문제는 없었는가?' },
+  { k: 'exec', e: '🏫', t: '실행 관점', q: '실제 교실의 시간, 기기, 학생 수준, 접근성 등을 고려할 때 실행 가능한 설계였는가?' }
+];
+const TYPE_LABEL = Object.fromEntries([...PEER.map(p => [p.k, p.t]), ...LENS.map(l => [l.k, l.e + ' ' + l.t])]);
+
+/* ---------- 작은 도우미 ---------- */
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+const $ = id => document.getElementById(id);
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const cleanName = s => s.trim().replace(/\s*선생님\s*$/, '').replace(/\s+/g, ' ').slice(0, 20);
+const disp = n => (n || '이름 없음') + ' 선생님';
+const fmtTime = ms => { try { return new Date(ms).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } };
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.append(s); }); }
+
+/* ---------- 저장소: Firebase(실시간) 또는 체험판(브라우저) ---------- */
+async function makeFirestoreStore(cfg) {
+  const V = '10.12.2';
+  await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-app-compat.js`);
+  await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-firestore-compat.js`);
+  firebase.initializeApp(cfg);
+  const db = firebase.firestore();
+  const FV = firebase.firestore.FieldValue;
+  const gref = db.collection('groups').doc(GROUP);
+  const tcol = gref.collection('teachers');
+  /* 선생님 한 명이 받은 피드백은 문서 하나(items 맵)에 모아 둡니다. 읽기 횟수를 줄이기 위한 구조입니다. */
+  const fdoc = tid => gref.collection('fb').doc(tid);
+  const items = snap => { const it = (snap.exists && snap.data().items) || {}; return Object.entries(it).map(([id, v]) => ({ id, ...v })); };
+  return {
+    mode: 'live',
+    watchTeachers(cb, onErr) { return tcol.onSnapshot(s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))), onErr); },
+    async ensureTeacher(name) {
+      const q = await tcol.where('name', '==', name).limit(1).get();
+      if (!q.empty) return q.docs[0].id;
+      const r = await tcol.add({ name, intro: '', question: '', improve: ['', '', ''], createdAt: Date.now() });
+      return r.id;
+    },
+    updateTeacher: (id, p) => tcol.doc(id).update(p),
+    watchFeedback(tid, cb, onErr) { return fdoc(tid).onSnapshot(s => cb(items(s)), onErr); },
+    addFeedback: (tid, f) => { const id = uid(); return fdoc(tid).set({ items: { [id]: { ...f, checked: false, createdAt: Date.now() } } }, { merge: true }); },
+    updateFeedback: (tid, fid, p) => fdoc(tid).update(Object.fromEntries(Object.entries(p).map(([k, v]) => [`items.${fid}.${k}`, v]))),
+    deleteFeedback: (tid, fid) => fdoc(tid).update({ [`items.${fid}`]: FV.delete() }),
+    async allFeedback(ids) { const out = {}; await Promise.all(ids.map(async id => { out[id] = items(await fdoc(id).get()); })); return out; }
+  };
+}
+
+function makeLocalStore() {
+  const KEY = 'afr-demo-v1-' + GROUP;
+  const tl = new Set(), fl = new Map();
+  const clone = o => JSON.parse(JSON.stringify(o));
+  function seed() {
+    const now = Date.now(), m = 60000;
+    const t = {
+      ex1: { id: 'ex1', name: '김OO', createdAt: now - 50 * m, improve: ['', '', ''],
+        intro: '생성형 AI를 활용하여 우리 지역의 문제를 조사하고 해결 방안을 제안하는 수업',
+        question: '학생들이 AI가 생성한 내용을 그대로 사용하는 경우가 많은데, 검증 활동을 어떻게 넣으면 좋을까요?' },
+      ex2: { id: 'ex2', name: '이OO', createdAt: now - 45 * m, improve: ['', '', ''], intro: '', question: '' },
+      ex3: { id: 'ex3', name: '박OO', createdAt: now - 40 * m, improve: ['', '', ''], intro: '', question: '' }
+    };
+    const f = { ex1: {} };
+    const add = (type, _a, _n, text, checked, ago) => { const id = uid(); f.ex1[id] = { id, type, anon: 'seed', text, checked, createdAt: now - ago * m }; };
+    add('answer', 'ex2', '이OO', '(예시) AI 답변과 교과서·공공데이터를 나란히 놓고 다른 점을 표시하는 "사실 확인표"를 모둠 활동으로 넣어 보세요.', false, 30);
+    add('learn', 'ex3', '박OO', '(예시) 지역 문제를 주제로 잡은 점이 좋았어요. 사회과 프로젝트에 가져가고 싶습니다.', false, 28);
+    add('more', 'ex3', '박OO', '(예시) 학생들이 쓴 프롬프트는 어떻게 기록하고 피드백하셨나요?', false, 27);
+    add('edu', 'ex2', '이OO', '(예시) 성취기준과 AI 활용 단계가 잘 연결되어 있어요. 차시별 목표를 한 장으로 보여 주면 더 좋겠습니다.', true, 25);
+    add('ethics', 'ex3', '박OO', '(예시) 지역 주민 사진이나 개인정보가 AI에 입력되지 않도록 사전 안내가 필요해 보여요.', true, 20);
+    add('tech', 'ex2', '이OO', '(예시) 학생 계정 로그인 시간을 고려해 첫 차시에 접속 점검 시간을 따로 두면 좋겠어요.', false, 18);
+    return { teachers: t, feedback: f };
+  }
+  function load() { const r = lsGet(KEY); if (r) { try { return JSON.parse(r); } catch (e) {} } return seed(); }
+  let data = load();
+  function emit() {
+    const ts = Object.values(data.teachers);
+    tl.forEach(cb => cb(clone(ts)));
+    fl.forEach((set, tid) => { const l = Object.values(data.feedback[tid] || {}); set.forEach(cb => cb(clone(l))); });
+  }
+  function save() { lsSet(KEY, JSON.stringify(data)); emit(); }
+  window.addEventListener('storage', e => { if (e.key === KEY) { data = load(); emit(); } });
+  return {
+    mode: 'demo',
+    watchTeachers(cb) { tl.add(cb); setTimeout(() => cb(clone(Object.values(data.teachers)))); return () => tl.delete(cb); },
+    async ensureTeacher(name) {
+      const hit = Object.values(data.teachers).find(t => t.name === name);
+      if (hit) return hit.id;
+      const id = uid(); data.teachers[id] = { id, name, intro: '', question: '', improve: ['', '', ''], createdAt: Date.now() }; save(); return id;
+    },
+    async updateTeacher(id, p) { if (data.teachers[id]) { Object.assign(data.teachers[id], p); save(); } },
+    watchFeedback(tid, cb) {
+      if (!fl.has(tid)) fl.set(tid, new Set());
+      fl.get(tid).add(cb); setTimeout(() => cb(clone(Object.values(data.feedback[tid] || {}))));
+      return () => fl.get(tid).delete(cb);
+    },
+    async addFeedback(tid, f) { const id = uid(); (data.feedback[tid] ||= {})[id] = { id, ...f, checked: false, createdAt: Date.now() }; save(); },
+    async updateFeedback(tid, fid, p) { const x = data.feedback[tid]?.[fid]; if (x) { Object.assign(x, p); save(); } },
+    async deleteFeedback(tid, fid) { if (data.feedback[tid]) { delete data.feedback[tid][fid]; save(); } },
+    async allFeedback(ids) { const out = {}; ids.forEach(id => out[id] = clone(Object.values(data.feedback[id] || {}))); return out; }
+  };
+}
+
+/* ---------- 상태 ---------- */
+const S = { store: null, me: null, teachers: [], order: [], current: null, feedback: [], unwatchFb: null, built: null };
+let ME_KEY = '';
+/* 익명 피드백: 이름 대신 이 브라우저만 아는 무작위 표식을 저장해, 내가 쓴 글만 삭제할 수 있게 함 */
+const ANON = (() => { let a = lsGet('afr-anon'); if (!a) { a = uid() + uid(); lsSet('afr-anon', a); } return a; })();
+function pickGroup() {
+  return new Promise(resolve => {
+    const grid = $('groupGrid'); grid.replaceChildren();
+    for (let i = 1; i <= GROUP_COUNT; i++) grid.append(h('button', { type: 'button', class: 'btn', text: i + '모둠', onclick: () => { $('groupModal').hidden = true; resolve(String(i)); } }));
+    $('groupModal').hidden = false;
+    setTimeout(() => grid.querySelector('button')?.focus(), 30);
+  });
+}
+$('groupBtn').addEventListener('click', async () => {
+  const g = await pickGroup();
+  if (g === GROUP) return;
+  try { location.hash = 'group' + g; } catch (e) {}
+  location.reload();
+});
+const byId = id => S.teachers.find(t => t.id === id);
+const isOwner = () => S.me && S.me.id === S.current;
+
+/* ---------- 이름 입력 ---------- */
+function openNameModal(prefill) {
+  $('nameModal').hidden = false; $('nameInput').value = prefill || ''; $('nameErr').textContent = '';
+  setTimeout(() => $('nameInput').focus(), 30);
+}
+$('nameForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = cleanName($('nameInput').value);
+  if (!name) { $('nameErr').textContent = '성함을 입력해 주세요.'; return; }
+  const btn = e.submitter || $('nameForm').querySelector('button'); btn.disabled = true;
+  try {
+    const id = await S.store.ensureTeacher(name);
+    S.me = { id, name }; lsSet(ME_KEY, JSON.stringify(S.me));
+    $('nameModal').hidden = true; renderMe(); openTeacher(id);
+  } catch (err) { $('nameErr').textContent = '입장하지 못했습니다. 인터넷 연결을 확인하고 다시 눌러 주세요.'; }
+  btn.disabled = false;
+});
+$('renameBtn').addEventListener('click', () => openNameModal(S.me?.name));
+function renderMe() { $('meBox').hidden = !S.me; if (S.me) $('meName').textContent = disp(S.me.name) + '으로 참여 중'; }
+
+/* ---------- 선생님 카드 ---------- */
+function syncOrder() {
+  const ids = S.teachers.map(t => t.id);
+  S.order = S.order.filter(id => ids.includes(id));
+  const fresh = shuffle(ids.filter(id => !S.order.includes(id)));
+  S.order.push(...fresh);
+}
+function renderCards() {
+  const box = $('cards'); box.replaceChildren();
+  if (!S.order.length) { box.append(h('span', { class: 'cards-empty', text: '아직 입장한 선생님이 없습니다.' })); return; }
+  for (const id of S.order) {
+    const t = byId(id); if (!t) continue;
+    box.append(h('button', { type: 'button', class: 'tcard', 'aria-current': id === S.current ? 'true' : 'false', onclick: () => openTeacher(id) },
+      disp(t.name), S.me && S.me.id === id ? h('span', { class: 'tag', text: '나' }) : null));
+  }
+}
+
+/* ---------- 선생님 페이지 ---------- */
+function openTeacher(id) {
+  if (S.current === id && S.built === id) return;
+  S.current = id; S.feedback = [];
+  if (S.unwatchFb) { try { S.unwatchFb(); } catch (e) {} }
+  buildPage();
+  S.unwatchFb = S.store.watchFeedback(id, list => { S.feedback = list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); renderFeedback(); }, () => showBanner('피드백을 불러오지 못했습니다. 새로고침해 주세요.'));
+  renderCards();
+}
+
+const refs = {};
+function ownerField(key, label, placeholder, idx) {
+  const t = byId(S.current); const own = isOwner();
+  const val = idx == null ? (t?.[key] || '') : (t?.improve?.[idx] || '');
+  const fid = 'f-' + key + (idx ?? '');
+  if (!own) {
+    const ro = h('div', { class: 'readonly' + (val ? '' : ' empty'), id: fid, text: val || '아직 작성하지 않았습니다.' });
+    refs[fid] = { ro, key, idx };
+    return h('div', { class: 'field' }, h('div', { class: 'label', text: label }), ro);
+  }
+  const ta = h('textarea', { id: fid, placeholder, maxlength: '1000' }); ta.value = val; ta.dataset.dirty = '';
+  const msg = h('span', { class: 'saved', role: 'status' });
+  ta.addEventListener('input', () => { ta.dataset.dirty = '1'; msg.textContent = ''; });
+  const save = h('button', { type: 'button', class: 'btn', text: '저장', onclick: async () => {
+    save.disabled = true;
+    try {
+      if (idx == null) await S.store.updateTeacher(S.current, { [key]: ta.value.trim() });
+      else { const cur = [...(byId(S.current)?.improve || ['', '', ''])]; cur[idx] = ta.value.trim(); await S.store.updateTeacher(S.current, { improve: cur }); }
+      ta.dataset.dirty = ''; msg.textContent = '저장했습니다';
+    } catch (e) { msg.textContent = ''; showBanner('저장하지 못했습니다. 인터넷 연결을 확인해 주세요.'); }
+    save.disabled = false;
+  } });
+  refs[fid] = { ta, key, idx };
+  return h('div', { class: 'field' }, h('label', { for: fid, text: label }), ta, h('div', { class: 'row' }, save, msg));
+}
+function updateOwnerFields() {
+  const t = byId(S.current); if (!t) return;
+  for (const r of Object.values(refs)) {
+    const val = r.idx == null ? (t[r.key] || '') : (t.improve?.[r.idx] || '');
+    if (r.ro) { r.ro.textContent = val || '아직 작성하지 않았습니다.'; r.ro.classList.toggle('empty', !val); }
+    else if (r.ta && document.activeElement !== r.ta && !r.ta.dataset.dirty) r.ta.value = val;
+  }
+}
+
+function composer(type, onDone) {
+  const id = 'c-' + type;
+  const ta = h('textarea', { id, placeholder: '내용을 입력하세요', maxlength: '1000', 'aria-label': (TYPE_LABEL[type] || '') + ' 입력' });
+  const go = h('button', { type: 'button', class: 'btn', text: '등록', onclick: async () => {
+    const text = ta.value.trim(); if (!text) { ta.focus(); return; }
+    go.disabled = true;
+    try { await S.store.addFeedback(S.current, { type, text, anon: ANON }); ta.value = ''; onDone && onDone(); }
+    catch (e) { showBanner('등록하지 못했습니다. 인터넷 연결을 확인해 주세요.'); }
+    go.disabled = false;
+  } });
+  return { el: h('div', { class: 'composer' }, ta, h('div', { class: 'row' }, go)), ta };
+}
+
+function buildPage() {
+  for (const k of Object.keys(refs)) delete refs[k];
+  const t = byId(S.current); const main = $('main');
+  if (!t) { main.replaceChildren(h('div', { class: 'placeholder', text: '선생님 카드를 눌러 수업 페이지를 열어 주세요.' })); S.built = null; return; }
+  const own = isOwner();
+  S.built = S.current;
+
+  const head = h('div', { class: 'page-head' }, h('h2', { text: disp(t.name) + '의 수업' }), own ? h('span', { class: 'mine-chip', text: '내 수업 페이지' }) : null);
+
+  const share = h('section', { class: 'panel', 'aria-label': '수업 공유' },
+    h('div', { class: 'panel-title' }, h('h3', { text: '수업 공유' }), h('p', { text: own ? '내 수업을 소개하고 동료에게 묻고 싶은 것을 적어 주세요.' : '수업자가 작성한 내용입니다.' })),
+    h('div', { class: 'share-grid' },
+      ownerField('intro', '수업 한 줄 소개', '(예) 생성형 AI를 활용하여 우리 지역의 문제를 조사하고 해결 방안을 제안하는 수업'),
+      ownerField('question', '동료에게 도움받고 싶은 질문', '(예) 학생들이 AI가 생성한 내용을 그대로 사용하는 경우가 많은데, 검증 활동을 어떻게 넣으면 좋을까요?')));
+
+  const peerCols = PEER.map(p => {
+    const list = h('ul', { class: 'list', id: 'list-' + p.k });
+    const col = h('div', { class: 'col' }, h('h4', { text: p.t }), h('p', { class: 'desc', text: p.d }), list);
+    if (own) col.append(h('div', { class: 'owner-note', text: '다른 선생님들이 남긴 내용이 여기에 쌓입니다.' }));
+    else col.append(composer(p.k).el);
+    return col;
+  });
+  const peer = h('section', { class: 'panel', 'aria-label': '동료 피드백' },
+    h('div', { class: 'panel-title' }, h('h3', { text: '동료 피드백' }), h('p', { text: '피드백은 이름 없이 익명으로 남습니다. 편하게 의견을 나눠 주세요.' })),
+    h('div', { class: 'peer-grid' }, peerCols));
+
+  const lensCards = LENS.map(l => {
+    const list = h('ul', { class: 'list', id: 'list-' + l.k });
+    const card = h('div', { class: 'col lens' }, h('h4', { text: l.e + ' ' + l.t }), h('p', { class: 'lens-q', text: '“' + l.q + '”' }), list);
+    if (!own) {
+      const c = composer(l.k, () => { c.el.hidden = true; add.hidden = false; });
+      c.el.hidden = true;
+      const cancel = h('button', { type: 'button', class: 'btn ghost', text: '취소', onclick: () => { c.el.hidden = true; add.hidden = false; } });
+      c.el.querySelector('.row').append(cancel);
+      const add = h('button', { type: 'button', class: 'add-btn', text: '+ 피드백 남기기', onclick: () => { add.hidden = true; c.el.hidden = false; c.ta.focus(); } });
+      card.append(add, c.el);
+    }
+    return card;
+  });
+  const lens = h('section', { class: 'panel', 'aria-label': '관점별 피드백' },
+    h('div', { class: 'panel-title' }, h('h3', { text: '관점별 피드백' }),
+      h('p', { text: own ? '도움이 된 피드백에 체크하면 아래 모아보기에 정리됩니다.' : '수업자가 체크한 피드백은 표시가 됩니다.' })),
+    h('div', { class: 'lens-grid' }, lensCards));
+
+  const picked = h('section', { class: 'panel', 'aria-label': '체크한 피드백 모아보기' },
+    h('div', { class: 'panel-title' }, h('h3', { text: '체크한 피드백 모아보기' }), h('p', { id: 'pickedCount' })),
+    h('div', { id: 'picked' }));
+
+  const improve = h('section', { class: 'panel', 'aria-label': '나의 수업 개선 방향' },
+    h('div', { class: 'panel-title' }, h('h3', { text: '나의 수업 개선 방향' }), h('p', { text: own ? '받은 피드백을 바탕으로 개선할 방향 3가지를 적어 주세요.' : '수업자가 정리한 개선 방향입니다.' })),
+    h('div', { class: 'improve' }, [0, 1, 2].map(i => ownerField('improve', '개선 방향 ' + (i + 1), '피드백을 바탕으로 바꿔 볼 점을 적어 주세요.', i))));
+
+  main.replaceChildren(h('div', { class: 'page' }, head, share, peer, lens, picked, improve));
+  renderFeedback();
+}
+
+function itemEl(f, withCheck) {
+  const own = isOwner();
+  const li = h('li', { class: 'item' + (withCheck && f.checked ? ' checked' : '') });
+  if (withCheck) {
+    const cb = h('input', { type: 'checkbox', class: 'check', 'aria-label': '이 피드백 체크', disabled: own ? null : true });
+    cb.checked = !!f.checked;
+    if (own) cb.addEventListener('change', () => S.store.updateFeedback(S.current, f.id, { checked: cb.checked }).catch(() => showBanner('체크를 저장하지 못했습니다.')));
+    li.append(cb);
+  }
+  const mine = f.anon && f.anon === ANON;
+  const body = h('div', { class: 'body' }, mine ? h('div', { class: 'who', text: '내가 남긴 피드백' }) : null, h('div', { class: 'text', text: f.text }));
+  li.append(body);
+  if (mine) {
+    const del = h('button', { type: 'button', class: 'del', text: '삭제' });
+    del.addEventListener('click', () => {
+      if (!del.classList.contains('armed')) { del.classList.add('armed'); del.textContent = '한 번 더 누르면 삭제'; setTimeout(() => { del.classList.remove('armed'); del.textContent = '삭제'; }, 3000); return; }
+      S.store.deleteFeedback(S.current, f.id).catch(() => showBanner('삭제하지 못했습니다.'));
+    });
+    li.append(del);
+  }
+  return li;
+}
+
+function renderFeedback() {
+  if (!S.built) return;
+  for (const p of PEER) {
+    const ul = $('list-' + p.k); if (!ul) continue;
+    const items = S.feedback.filter(f => f.type === p.k);
+    ul.replaceChildren(...(items.length ? items.map(f => itemEl(f, false)) : [h('li', { class: 'empty-list', text: '아직 남긴 내용이 없습니다.' })]));
+  }
+  for (const l of LENS) {
+    const ul = $('list-' + l.k); if (!ul) continue;
+    const items = S.feedback.filter(f => f.type === l.k);
+    ul.replaceChildren(...(items.length ? items.map(f => itemEl(f, true)) : [h('li', { class: 'empty-list', text: '아직 피드백이 없습니다.' })]));
+  }
+  const box = $('picked'); if (!box) return;
+  const groups = LENS.map(l => ({ l, items: S.feedback.filter(f => f.type === l.k && f.checked) })).filter(g => g.items.length);
+  const n = groups.reduce((a, g) => a + g.items.length, 0);
+  $('pickedCount').textContent = n ? `${n}개` : '';
+  if (!n) { box.replaceChildren(h('div', { class: 'empty-list', text: isOwner() ? '관점별 피드백에서 도움이 된 내용에 체크해 보세요.' : '수업자가 아직 체크한 피드백이 없습니다.' })); return; }
+  box.replaceChildren(h('div', { class: 'picked-groups' }, groups.map(g =>
+    h('div', { class: 'picked-group' }, h('h4', { text: g.l.e + ' ' + g.l.t }),
+      h('ul', { class: 'list' }, g.items.map(f => h('li', { class: 'item' }, h('div', { class: 'body' }, h('div', { class: 'text', text: f.text })))))))));
+}
+
+/* ---------- 엑셀 ---------- */
+const XB = { style: 'thin', color: { rgb: 'E0CDBE' } };
+const BORDER = { top: XB, bottom: XB, left: XB, right: XB };
+const XS = {
+  title: { font: { bold: true, sz: 15, color: { rgb: '2A211C' } }, alignment: { vertical: 'center' } },
+  meta: { font: { sz: 10, color: { rgb: '5E5048' } } },
+  sec: { font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: 'A84E24' } }, alignment: { vertical: 'center' } },
+  sub: { font: { bold: true, color: { rgb: '7E3A1A' } }, fill: { fgColor: { rgb: 'F9E2D2' } }, border: BORDER, alignment: { vertical: 'center', wrapText: true } },
+  head: { font: { bold: true, sz: 10, color: { rgb: '5E5048' } }, fill: { fgColor: { rgb: 'F6EEE7' } }, border: BORDER, alignment: { horizontal: 'center', vertical: 'center', wrapText: true } },
+  label: { font: { bold: true }, fill: { fgColor: { rgb: 'FCF8F4' } }, border: BORDER, alignment: { vertical: 'top', wrapText: true } },
+  cell: { border: BORDER, alignment: { vertical: 'top', wrapText: true } },
+  center: { border: BORDER, alignment: { horizontal: 'center', vertical: 'top' } },
+  num: { border: BORDER, alignment: { horizontal: 'center', vertical: 'top' }, font: { color: { rgb: '5E5048' } } },
+  check: { font: { bold: true, color: { rgb: 'A84E24' } }, border: BORDER, alignment: { horizontal: 'center', vertical: 'top' } },
+  empty: { font: { italic: true, color: { rgb: '9A8A7E' } }, border: BORDER, alignment: { vertical: 'top' } }
+};
+function textWidth(s) { let w = 0; for (const ch of String(s || '')) w += /[ᄀ-ᇿ　-鿿가-힯＀-￯]/.test(ch) ? 1.9 : 1; return w; }
+function estHeight(text, wch) {
+  const lines = String(text || '').split('\n').reduce((n, line) => n + Math.max(1, Math.ceil(textWidth(line) / Math.max(wch - 2, 4))), 0);
+  return Math.max(20, lines * 15 + 6);
+}
+function SheetBuilder(widths) {
+  const rows = [], merges = [], heights = [];
+  const total = widths.length;
+  const api = {
+    /* cells: [{v, s, span}] — span은 오른쪽으로 합칠 칸 수 */
+    row(cells, hpt) {
+      const r = rows.length, out = new Array(total).fill(null); let c = 0, need = 20;
+      for (const cell of cells) {
+        if (c >= total) break;
+        const span = Math.min(cell.span || 1, total - c);
+        out[c] = { v: cell.v == null ? '' : cell.v, s: cell.s };
+        for (let k = 1; k < span; k++) out[c + k] = { v: '', s: cell.s };
+        if (span > 1) merges.push({ s: { r, c }, e: { r, c: c + span - 1 } });
+        if (cell.s && cell.s.alignment && cell.s.alignment.wrapText) {
+          const w = widths.slice(c, c + span).reduce((a, b) => a + b, 0);
+          need = Math.max(need, estHeight(cell.v, w));
+        }
+        c += span;
+      }
+      rows.push(out); heights.push(hpt || need); return r;
+    },
+    blank() { rows.push(new Array(total).fill(null)); heights.push(10); },
+    toSheet() {
+      const ws = {};
+      rows.forEach((row, r) => row.forEach((cell, c) => {
+        if (!cell) return;
+        const ref = XLSX.utils.encode_cell({ r, c });
+        ws[ref] = { v: cell.v, t: typeof cell.v === 'number' ? 'n' : 's' };
+        if (cell.s) ws[ref].s = cell.s;
+      }));
+      ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(rows.length - 1, 0), c: total - 1 } });
+      ws['!merges'] = merges;
+      ws['!cols'] = widths.map(w => ({ wch: w }));
+      ws['!rows'] = heights.map(hpt => ({ hpt }));
+      return ws;
+    }
+  };
+  return api;
+}
+const stamp = ms => { try { return new Date(ms).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } };
+
+/* 선생님 한 명의 탭: 구분별로 제목 줄 → 머리글 → 피드백이 차례로 쌓임 */
+function sheetRows(t, fb) {
+  const W = [6, 24, 52, 8];                 // 번호 | 내용(2칸) | 체크 — 피드백은 익명
+  const sb = SheetBuilder(W);
+  const sorted = [...fb].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const of = k => sorted.filter(f => f.type === k);
+
+  sb.row([{ v: disp(t.name) + '의 수업', s: XS.title, span: 5 }], 28);
+  sb.row([{ v: `${GROUP}모둠 · 받은 피드백 ${fb.length}개 · 체크 ${fb.filter(f => f.checked).length}개 · ${stamp(Date.now())} 저장`, s: XS.meta, span: 5 }], 18);
+  sb.blank();
+
+  sb.row([{ v: '수업 공유', s: XS.sec, span: 5 }], 24);
+  sb.row([{ v: '수업 한 줄 소개', s: XS.label, span: 2 }, { v: t.intro || '(작성하지 않음)', s: t.intro ? XS.cell : XS.empty, span: 3 }]);
+  sb.row([{ v: '동료에게 도움받고 싶은 질문', s: XS.label, span: 2 }, { v: t.question || '(작성하지 않음)', s: t.question ? XS.cell : XS.empty, span: 3 }]);
+  sb.blank();
+
+  sb.row([{ v: '동료 피드백', s: XS.sec, span: 5 }], 24);
+  for (const p of PEER) {
+    const items = of(p.k);
+    sb.row([{ v: `${p.t}  ·  ${p.d}  (${items.length}개)`, s: XS.sub, span: 5 }]);
+    sb.row([{ v: '번호', s: XS.head }, { v: '내용', s: XS.head, span: 3 }], 20);
+    if (!items.length) sb.row([{ v: '아직 남긴 내용이 없습니다.', s: XS.empty, span: 5 }], 20);
+    items.forEach((f, i) => sb.row([{ v: i + 1, s: XS.num }, { v: f.text, s: XS.cell, span: 3 }]));
+  }
+  sb.blank();
+
+  sb.row([{ v: '관점별 피드백', s: XS.sec, span: 5 }], 24);
+  for (const l of LENS) {
+    const items = of(l.k), nChk = items.filter(f => f.checked).length;
+    sb.row([{ v: `${l.e} ${l.t}  ·  “${l.q}”  (${items.length}개, 체크 ${nChk}개)`, s: XS.sub, span: 5 }]);
+    sb.row([{ v: '번호', s: XS.head }, { v: '내용', s: XS.head, span: 2 }, { v: '체크', s: XS.head }], 20);
+    if (!items.length) sb.row([{ v: '아직 피드백이 없습니다.', s: XS.empty, span: 5 }], 20);
+    items.forEach((f, i) => sb.row([{ v: i + 1, s: XS.num }, { v: f.text, s: XS.cell, span: 2 }, { v: f.checked ? '✔' : '', s: XS.check }]));
+  }
+  sb.blank();
+
+  const picked = LENS.map(l => ({ l, items: of(l.k).filter(f => f.checked) })).filter(g => g.items.length);
+  const nPicked = picked.reduce((a, g) => a + g.items.length, 0);
+  sb.row([{ v: `체크한 피드백 모아보기 (${nPicked}개)`, s: XS.sec, span: 5 }], 24);
+  if (!nPicked) sb.row([{ v: '체크한 피드백이 없습니다.', s: XS.empty, span: 5 }], 20);
+  for (const g of picked) {
+    sb.row([{ v: `${g.l.e} ${g.l.t}`, s: XS.sub, span: 5 }], 20);
+    g.items.forEach((f, i) => sb.row([{ v: i + 1, s: XS.num }, { v: f.text, s: XS.cell, span: 3 }]));
+  }
+  sb.blank();
+
+  sb.row([{ v: '나의 수업 개선 방향', s: XS.sec, span: 5 }], 24);
+  (t.improve || ['', '', '']).forEach((v, i) => sb.row([{ v: '개선 방향 ' + (i + 1), s: XS.label, span: 2 }, { v: v || '(작성하지 않음)', s: v ? XS.cell : XS.empty, span: 3 }]));
+  return sb.toSheet();
+}
+
+/* 모둠 요약 탭: 한 사람당 한 줄, 구분별 피드백 수 */
+function summarySheet(ts, all) {
+  const W = [14, 34, 34, 9, 9, 9, 9, 9, 9, 9, 9, 9, 8, 8, 30, 30, 30];
+  const sb = SheetBuilder(W);
+  sb.row([{ v: `${GROUP}모둠 전체 피드백 요약`, s: XS.title, span: W.length }], 28);
+  sb.row([{ v: `참여 ${ts.length}명 · ${stamp(Date.now())} 저장 · 선생님별 자세한 내용은 이름 탭에 있습니다.`, s: XS.meta, span: W.length }], 18);
+  sb.blank();
+  sb.row([
+    { v: '선생님', s: XS.head }, { v: '수업 공유', s: XS.head, span: 2 },
+    { v: '동료 피드백 (개)', s: XS.head, span: 3 }, { v: '관점별 피드백 (개)', s: XS.head, span: 6 },
+    { v: '합계', s: XS.head, span: 2 }, { v: '나의 수업 개선 방향', s: XS.head, span: 3 }
+  ], 22);
+  sb.row([
+    { v: '', s: XS.head }, { v: '수업 한 줄 소개', s: XS.head }, { v: '동료에게 도움받고 싶은 질문', s: XS.head },
+    ...PEER.map(p => ({ v: p.t, s: XS.head })),
+    ...LENS.map(l => ({ v: l.e + ' ' + l.t, s: XS.head })),
+    { v: '받은 피드백', s: XS.head }, { v: '체크', s: XS.head },
+    { v: '개선 방향 1', s: XS.head }, { v: '개선 방향 2', s: XS.head }, { v: '개선 방향 3', s: XS.head }
+  ], 44);
+  for (const t of ts) {
+    const fb = all[t.id] || [];
+    const cnt = k => fb.filter(f => f.type === k).length;
+    const imp = t.improve || ['', '', ''];
+    sb.row([
+      { v: disp(t.name), s: XS.label }, { v: t.intro || '', s: XS.cell }, { v: t.question || '', s: XS.cell },
+      ...PEER.map(p => ({ v: cnt(p.k), s: XS.center })), ...LENS.map(l => ({ v: cnt(l.k), s: XS.center })),
+      { v: fb.length, s: XS.center }, { v: fb.filter(f => f.checked).length, s: XS.check },
+      { v: imp[0] || '', s: XS.cell }, { v: imp[1] || '', s: XS.cell }, { v: imp[2] || '', s: XS.cell }
+    ]);
+  }
+  return sb.toSheet();
+}
+
+function sheetName(name, used) {
+  let base = (name || '이름없음').replace(/[\[\]:*?\/\\]/g, '').slice(0, 28) || '이름없음', n = base, i = 2;
+  while (used.has(n)) n = base.slice(0, 26) + '_' + i++;
+  used.add(n); return n;
+}
+function setExportMsg(s) { $('exportMsg').textContent = s; }
+$('exportMine').addEventListener('click', async () => {
+  if (typeof XLSX === 'undefined') { setExportMsg('엑셀 도구를 불러오지 못했습니다. 새로고침 후 다시 눌러 주세요.'); return; }
+  if (!S.me) { openNameModal(); return; }
+  const t = byId(S.me.id); if (!t) { setExportMsg('내 정보를 찾지 못했습니다.'); return; }
+  try {
+    const fb = (await S.store.allFeedback([t.id]))[t.id] || [];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, sheetRows(t, fb), sheetName(t.name, new Set()));
+    XLSX.writeFile(wb, `${t.name}_수업피드백_${GROUP}모둠.xlsx`);
+    setExportMsg('내 피드백을 엑셀 파일로 저장했습니다.');
+  } catch (e) { setExportMsg('저장하지 못했습니다. 다시 눌러 주세요.'); }
+});
+$('exportAll').addEventListener('click', async () => {
+  if (typeof XLSX === 'undefined') { setExportMsg('엑셀 도구를 불러오지 못했습니다. 새로고침 후 다시 눌러 주세요.'); return; }
+  if (!S.teachers.length) { setExportMsg('저장할 내용이 없습니다.'); return; }
+  try {
+    setExportMsg('모둠 전체 내용을 모으는 중입니다…');
+    const ts = [...S.teachers].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    const all = await S.store.allFeedback(ts.map(t => t.id));
+    const wb = XLSX.utils.book_new(); const used = new Set();
+    XLSX.utils.book_append_sheet(wb, summarySheet(ts, all), sheetName('모둠 요약', used));
+    for (const t of ts) XLSX.utils.book_append_sheet(wb, sheetRows(t, all[t.id] || []), sheetName(t.name, used));
+    XLSX.writeFile(wb, `${GROUP}모둠_전체피드백.xlsx`);
+    setExportMsg(`${ts.length}명의 내용을 탭별로 정리해 저장했습니다.`);
+  } catch (e) { setExportMsg('저장하지 못했습니다. 다시 눌러 주세요.'); }
+});
+
+/* ---------- 시작 ---------- */
+function showBanner(text) { const b = $('banner'); b.textContent = text; b.hidden = false; }
+(async function start() {
+  if (!GROUP) { GROUP = await pickGroup(); try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])group=[^&]*&?/, '$1').replace(/[?&]$/, '') + '#group' + GROUP); } catch (e) {} }
+  ME_KEY = 'afr-me-' + GROUP;
+  $('groupBadge').textContent = GROUP + '모둠';
+  document.title = `[${GROUP}모둠] AI 융합수업 함께 들여다보기`;
+  try { const cfg = boardConfig(GROUP); S.store = cfg ? await makeFirestoreStore(cfg) : makeLocalStore(); }
+  catch (e) { S.store = makeLocalStore(); showBanner('실시간 서버에 연결하지 못해 체험판으로 열었습니다. 새로고침해 보세요.'); }
+  if (S.store.mode === 'demo' && $('banner').hidden) showBanner('체험판입니다. 예시 선생님 3명이 들어 있고, 입력한 내용은 이 브라우저에만 저장됩니다.');
+  try { const m = JSON.parse(lsGet(ME_KEY) || 'null'); if (m && m.id && m.name) S.me = m; } catch (e) {}
+  let first = true;
+  S.store.watchTeachers(list => {
+    S.teachers = list; syncOrder();
+    if (first) {
+      first = false;
+      if (S.me && !byId(S.me.id)) S.me = null;
+      renderMe();
+      if (!S.me) openNameModal(); else if (!S.current) openTeacher(S.me.id);
+    }
+    if (S.current && !byId(S.current)) { S.current = null; S.built = null; buildPage(); }
+    else if (S.current && S.built !== S.current) buildPage();
+    else updateOwnerFields();
+    renderCards();
+  }, () => showBanner('선생님 목록을 불러오지 못했습니다. 새로고침해 주세요.'));
+})();
+</script>
+
+</body>
+</html>
