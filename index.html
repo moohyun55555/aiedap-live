@@ -141,6 +141,11 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
 .zoom .x{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:10px;min-height:44px;padding:0 14px;font-weight:600}
 .zoom .zc{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;color:#fff;background:rgba(0,0,0,.45);padding:6px 10px;border-radius:12px;font-variant-numeric:tabular-nums}
 .zoom .zc button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;width:44px;height:40px}
+.zoom img{cursor:pointer}
+.zoom .x,.zoom .zc{transition:opacity .3s}
+.zoom.idle{cursor:none}
+.zoom.idle .x,.zoom.idle .zc{opacity:0;pointer-events:none}
+.showbtn{display:inline-flex;align-items:center;gap:6px}
 
 .modal{position:fixed;inset:0;background:rgba(30,20,14,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
 .mbox{background:var(--surface);border-radius:16px;padding:24px;width:min(400px,100%);display:flex;flex-direction:column;gap:12px}
@@ -198,8 +203,9 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
       </section>
 
       <section class="panel pbar" id="pbar" aria-label="발표자 도구" hidden>
-        <strong>발표자 도구 · ← → 키, 프레젠터 리모컨으로도 넘길 수 있습니다</strong>
+        <strong>발표자 도구 · 슬라이드 쇼에서도 ← → 키·리모컨·화면 클릭으로 넘기면 참가자 화면이 함께 넘어갑니다</strong>
         <div class="row">
+          <button type="button" class="btn showbtn" id="showBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>슬라이드 쇼 시작 (F5)</button>
           <button type="button" class="btn" id="recallBtn">모두 내 화면으로</button>
           <button type="button" class="btn ghost toggle" id="lockBtn" aria-pressed="false">참가자 넘김 잠그기</button>
           <button type="button" class="btn ghost toggle" id="pauseBtn" aria-pressed="false">채팅 일시정지</button>
@@ -385,7 +391,14 @@ $('nextBtn').onclick = () => go(S.view + 1);
 $('backBtn').onclick = backToPresenter;
 
 /* 크게 보기 */
-$('stage').onclick = () => { $('zoom').hidden = false; render(); const z = $('zoom'); if (z.requestFullscreen) z.requestFullscreen().catch(() => {}); };
+function openShow() { $('zoom').hidden = false; render(); poke(); const z = $('zoom'); if (z.requestFullscreen) z.requestFullscreen().catch(() => {}); }
+$('stage').onclick = openShow;
+$('showBtn').onclick = openShow;
+/* 슬라이드 쇼: 화면을 누르면 다음 장(왼쪽 1/4을 누르면 이전 장), 2.5초 뒤 버튼·커서 숨김 */
+$('zoomImg').onclick = e => { const r = $('zoomImg').getBoundingClientRect(); go(S.view + ((e.clientX - r.left) < r.width / 4 ? -1 : 1)); };
+let idleT = 0;
+function poke() { const z = $('zoom'); z.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => z.classList.add('idle'), 2500); }
+$('zoom').addEventListener('mousemove', poke);
 function closeZoom() { $('zoom').hidden = true; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
 $('zoomClose').onclick = closeZoom;
 $('zPrev').onclick = () => go(S.view - 1);
@@ -394,8 +407,10 @@ document.addEventListener('fullscreenchange', () => { if (!document.fullscreenEl
 document.addEventListener('keydown', e => {
   const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
   if (e.key === 'Escape' && !$('zoom').hidden) { closeZoom(); return; }
-  if (['ArrowRight', 'PageDown'].includes(e.key) || (e.key === ' ' && S.presenter)) { e.preventDefault(); go(S.view + 1); }
-  else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(S.view - 1); }
+  if (e.key === 'F5' && S.presenter) { e.preventDefault(); if ($('zoom').hidden) openShow(); return; }
+  if (e.key === 'Enter' && !$('zoom').hidden) { e.preventDefault(); go(S.view + 1); return; }
+  if (['ArrowRight', 'PageDown', 'ArrowDown'].includes(e.key) || (e.key === ' ' && (S.presenter || !$('zoom').hidden))) { e.preventDefault(); go(S.view + 1); }
+  else if (['ArrowLeft', 'PageUp', 'ArrowUp', 'Backspace'].includes(e.key)) { e.preventDefault(); go(S.view - 1); }
 });
 
 /* ---------- 교안 ---------- */
