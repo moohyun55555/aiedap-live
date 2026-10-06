@@ -128,7 +128,9 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
 
 /* 실습 링크 */
 .links{padding:14px;display:flex;flex-direction:column;gap:10px}
-.lgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:1399px){.lgrid .lk .ext{display:none}}
+@media (max-width:1199px){.lgrid .lk{padding:0 8px;justify-content:center;font-size:13px}.lgrid .lk .ic{display:none}.lgrid .lk .tx{flex:0 1 auto;text-align:center;white-space:normal;word-break:keep-all;line-height:1.25}}
 .lk{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;text-decoration:none;color:var(--fg);background:var(--surface-2);font-weight:600;font-size:14px;min-width:0}
 .lk:hover{border-color:var(--accent);background:var(--accent-soft)}
 .lk .ic{width:30px;height:30px;border-radius:8px;background:var(--accent-tint);color:var(--accent-strong);display:inline-flex;align-items:center;justify-content:center;flex:none}
@@ -169,7 +171,7 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
   .chat{min-height:380px;max-height:70vh}
   .plan{max-height:80vh}
 }
-@media (max-width:640px){.lgrid{grid-template-columns:minmax(0,1fr)}.plan{padding:16px}}
+@media (max-width:640px){.lgrid{gap:6px}.lgrid .lk{padding:0 4px;font-size:12px;min-height:48px}.plan{padding:16px}}
 </style>
 </head>
 <body>
@@ -257,6 +259,11 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
           <a class="lk" href="board/index.html" target="_blank" rel="noopener">
             <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.6"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/></svg></span>
             <span class="tx">모둠별 게시판</span>
+            <svg class="ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+          </a>
+          <a class="lk" href="timer/" target="_blank" rel="noopener">
+            <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg></span>
+            <span class="tx">타이머</span>
             <svg class="ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
           </a>
         </nav>
