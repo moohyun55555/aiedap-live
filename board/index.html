@@ -31,6 +31,7 @@
   --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6;padding:20px 16px 48px}
 .wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
 button,input,textarea{font:inherit;color:inherit}
@@ -58,6 +59,9 @@ header.top h1{font-size:clamp(20px,3vw,26px);font-weight:700;letter-spacing:-.01
 .page{display:flex;flex-direction:column;gap:20px}
 .page-head{text-align:center;padding:12px 0 4px;display:flex;flex-direction:column;gap:6px;align-items:center}
 .page-head h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.015em}
+.admin-chip{font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;background:#B3261E;color:#fff}
+.danger{min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #B3261E;background:transparent;color:#B3261E;font-weight:600}
+.danger.armed{background:#B3261E;color:#fff}
 .mine-chip{font-size:13px;font-weight:600;color:var(--accent-strong);background:var(--accent-soft);border:1px solid var(--accent-tint);padding:2px 10px;border-radius:999px}
 
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;min-width:0}
@@ -145,6 +149,8 @@ textarea:focus{background:var(--surface)}
       <span id="meBox" hidden><span id="meName"></span>
       <button type="button" class="link-btn" id="renameBtn">이름 바꾸기</button></span>
       <button type="button" class="link-btn" id="groupBtn">모둠 바꾸기</button>
+      <span class="admin-chip" id="adminChip" hidden>관리자</span>
+      <button type="button" class="link-btn" id="adminBtn">관리자</button>
     </div>
   </header>
   <nav aria-label="선생님 목록"><div class="cards" id="cards"><span class="cards-empty">선생님 목록을 불러오는 중입니다.</span></div></nav>
@@ -156,6 +162,20 @@ textarea:focus{background:var(--surface)}
     </div>
     <div class="export-msg" id="exportMsg" role="status"></div>
   </section>
+</div>
+
+<div class="modal" id="adminModal" hidden>
+  <form class="modal-box" id="adminForm">
+    <h2>관리자 로그인</h2>
+    <p class="muted" style="margin:0;font-size:14px">강사만 사용합니다. 로그인하면 선생님 카드를 삭제할 수 있습니다.</p>
+    <label for="adminPw" class="muted" style="font-size:13px">비밀번호 (발표자 비밀번호와 같음)</label>
+    <input id="adminPw" type="password" autocomplete="current-password">
+    <div class="err" id="adminErr" role="alert"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" class="btn ghost" id="adminCancel">취소</button>
+      <button type="submit" class="btn">로그인</button>
+    </div>
+  </form>
 </div>
 
 <div class="modal" id="groupModal" hidden>
@@ -239,8 +259,11 @@ async function makeFirestoreStore(cfg) {
   const V = '10.12.2';
   await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-app-compat.js`);
   await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-firestore-compat.js`);
+  await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-auth-compat.js`);
   firebase.initializeApp(cfg);
   const db = firebase.firestore();
+  const auth = firebase.auth();
+  const ADMIN = window.PRESENTER_EMAIL || 'presenter@aiedap-live.kr';
   const FV = firebase.firestore.FieldValue;
   const gref = db.collection('groups').doc(GROUP);
   const tcol = gref.collection('teachers');
@@ -261,11 +284,17 @@ async function makeFirestoreStore(cfg) {
     addFeedback: (tid, f) => { const id = uid(); return fdoc(tid).set({ items: { [id]: { ...f, checked: false, createdAt: Date.now() } } }, { merge: true }); },
     updateFeedback: (tid, fid, p) => fdoc(tid).update(Object.fromEntries(Object.entries(p).map(([k, v]) => [`items.${fid}.${k}`, v]))),
     deleteFeedback: (tid, fid) => fdoc(tid).update({ [`items.${fid}`]: FV.delete() }),
-    async allFeedback(ids) { const out = {}; await Promise.all(ids.map(async id => { out[id] = items(await fdoc(id).get()); })); return out; }
+    async allFeedback(ids) { const out = {}; await Promise.all(ids.map(async id => { out[id] = items(await fdoc(id).get()); })); return out; },
+    /* 관리자(발표자 계정)만 카드 삭제 가능 — 보안 규칙에서도 같은 계정만 허용 */
+    onAdmin: cb => auth.onAuthStateChanged(u => cb(!!u && u.email === ADMIN)),
+    adminLogin: pw => auth.signInWithEmailAndPassword(ADMIN, pw),
+    adminLogout: () => auth.signOut(),
+    async deleteTeacher(tid) { await fdoc(tid).delete(); await tcol.doc(tid).delete(); }
   };
 }
 
 function makeLocalStore() {
+  let adminCb = null;
   const KEY = 'afr-demo-v1-' + GROUP;
   const tl = new Set(), fl = new Map();
   const clone = o => JSON.parse(JSON.stringify(o));
@@ -314,7 +343,11 @@ function makeLocalStore() {
     async addFeedback(tid, f) { const id = uid(); (data.feedback[tid] ||= {})[id] = { id, ...f, checked: false, createdAt: Date.now() }; save(); },
     async updateFeedback(tid, fid, p) { const x = data.feedback[tid]?.[fid]; if (x) { Object.assign(x, p); save(); } },
     async deleteFeedback(tid, fid) { if (data.feedback[tid]) { delete data.feedback[tid][fid]; save(); } },
-    async allFeedback(ids) { const out = {}; ids.forEach(id => out[id] = clone(Object.values(data.feedback[id] || {}))); return out; }
+    async allFeedback(ids) { const out = {}; ids.forEach(id => out[id] = clone(Object.values(data.feedback[id] || {}))); return out; },
+    onAdmin(cb) { adminCb = cb; let on = false; try { on = sessionStorage.getItem('demo-admin') === '1'; } catch (e) {} cb(on); },
+    async adminLogin(pw) { if (pw !== 'demo') throw new Error('bad'); try { sessionStorage.setItem('demo-admin', '1'); } catch (e) {} adminCb && adminCb(true); },
+    async adminLogout() { try { sessionStorage.removeItem('demo-admin'); } catch (e) {} adminCb && adminCb(false); },
+    async deleteTeacher(tid) { delete data.teachers[tid]; delete data.feedback[tid]; save(); }
   };
 }
 
@@ -441,7 +474,17 @@ function buildPage() {
   const own = isOwner();
   S.built = S.current;
 
-  const head = h('div', { class: 'page-head' }, h('h2', { text: disp(t.name) + '의 수업' }), own ? h('span', { class: 'mine-chip', text: '내 수업 페이지' }) : null);
+  let delBtn = null;
+  if (S.admin) {
+    delBtn = h('button', { type: 'button', class: 'danger', text: '관리자: 이 선생님 카드 삭제' });
+    delBtn.addEventListener('click', async () => {
+      if (!delBtn.classList.contains('armed')) { delBtn.classList.add('armed'); delBtn.textContent = '한 번 더 누르면 카드와 받은 피드백이 모두 삭제됩니다'; setTimeout(() => { if (delBtn.isConnected) { delBtn.classList.remove('armed'); delBtn.textContent = '관리자: 이 선생님 카드 삭제'; } }, 4000); return; }
+      delBtn.disabled = true;
+      try { await S.store.deleteTeacher(S.current); showBanner(`${disp(t.name)} 카드를 삭제했습니다.`); }
+      catch (e) { delBtn.disabled = false; showBanner('삭제하지 못했습니다. 관리자로 다시 로그인해 주세요.'); }
+    });
+  }
+  const head = h('div', { class: 'page-head' }, h('h2', { text: disp(t.name) + '의 수업' }), own ? h('span', { class: 'mine-chip', text: '내 수업 페이지' }) : null, delBtn);
 
   const share = h('section', { class: 'panel', 'aria-label': '수업 공유' },
     h('div', { class: 'panel-title' }, h('h3', { text: '수업 공유' }), h('p', { text: own ? '내 수업을 소개하고 동료에게 묻고 싶은 것을 적어 주세요.' : '수업자가 작성한 내용입니다.' })),
@@ -714,6 +757,21 @@ $('exportAll').addEventListener('click', async () => {
 });
 
 /* ---------- 시작 ---------- */
+/* ---------- 관리자 ---------- */
+$('adminBtn').addEventListener('click', () => {
+  if (S.admin) { S.store.adminLogout(); return; }
+  $('adminModal').hidden = false; $('adminErr').textContent = ''; $('adminPw').value = ''; setTimeout(() => $('adminPw').focus(), 30);
+});
+$('adminCancel').addEventListener('click', () => { $('adminModal').hidden = true; });
+$('adminForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  try { await S.store.adminLogin($('adminPw').value); $('adminModal').hidden = true; }
+  catch (err) { $('adminErr').textContent = '비밀번호가 맞지 않습니다.'; }
+});
+function setAdmin(on) {
+  S.admin = on; $('adminChip').hidden = !on; $('adminBtn').textContent = on ? '관리자 로그아웃' : '관리자';
+  if (S.current) { S.built = null; buildPage(); }
+}
 function showBanner(text) { const b = $('banner'); b.textContent = text; b.hidden = false; }
 (async function start() {
   if (!GROUP) { GROUP = await pickGroup(); try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])group=[^&]*&?/, '$1').replace(/[?&]$/, '') + '#group' + GROUP); } catch (e) {} }
@@ -725,6 +783,7 @@ function showBanner(text) { const b = $('banner'); b.textContent = text; b.hidde
   if (S.store.mode === 'demo' && $('banner').hidden) showBanner('체험판입니다. 예시 선생님 3명이 들어 있고, 입력한 내용은 이 브라우저에만 저장됩니다.');
   try { const m = JSON.parse(lsGet(ME_KEY) || 'null'); if (m && m.id && m.name) S.me = m; } catch (e) {}
   let first = true;
+  if (S.store.onAdmin) S.store.onAdmin(setAdmin);
   S.store.watchTeachers(list => {
     S.teachers = list; syncOrder();
     if (first) {

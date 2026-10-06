@@ -137,7 +137,9 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
 
 /* 크게 보기 */
 .zoom{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:30}
-.zoom img{max-width:100%;max-height:100%;object-fit:contain}
+.zoom img{width:100vw;height:100vh;max-width:none;object-fit:contain;display:block}
+.zoom.fill img{object-fit:fill}
+.zoom .zc .fit{width:auto;padding:0 10px;font-size:12px;font-weight:600}
 .zoom .x{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:10px;min-height:44px;padding:0 14px;font-weight:600}
 .zoom .zc{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;color:#fff;background:rgba(0,0,0,.45);padding:6px 10px;border-radius:12px;font-variant-numeric:tabular-nums}
 .zoom .zc button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;width:44px;height:40px}
@@ -266,7 +268,7 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
 <div class="zoom" id="zoom" hidden>
   <img id="zoomImg" alt="">
   <button type="button" class="x" id="zoomClose">닫기 (Esc)</button>
-  <div class="zc"><button type="button" id="zPrev" aria-label="이전">‹</button><span id="zCount"></span><button type="button" id="zNext" aria-label="다음">›</button></div>
+  <div class="zc"><button type="button" id="zPrev" aria-label="이전">‹</button><span id="zCount"></span><button type="button" id="zNext" aria-label="다음">›</button><button type="button" class="fit" id="zFit">화면 꽉 채우기</button></div>
 </div>
 
 <div class="modal" id="loginModal" hidden>
@@ -391,7 +393,17 @@ $('nextBtn').onclick = () => go(S.view + 1);
 $('backBtn').onclick = backToPresenter;
 
 /* 크게 보기 */
-function openShow() { $('zoom').hidden = false; render(); poke(); const z = $('zoom'); if (z.requestFullscreen) z.requestFullscreen().catch(() => {}); }
+/* 화면 맞춤: 화면 비율이 16:9와 크게 다르지 않으면(노트북 16:10 등) 검은 여백 없이 꽉 채움. 'F' 키나 버튼으로 전환 */
+let fitMode = (() => { try { return localStorage.getItem('live-fit'); } catch (e) { return null; } })() || 'auto';
+function applyFit() {
+  const r = window.innerWidth / window.innerHeight, d = Math.abs(r - 16 / 9) / (16 / 9);
+  const fill = fitMode === 'fill' || (fitMode === 'auto' && d <= 0.15);
+  $('zoom').classList.toggle('fill', fill);
+  $('zFit').textContent = fill ? '원래 비율로 보기' : '화면 꽉 채우기';
+}
+function toggleFit() { fitMode = $('zoom').classList.contains('fill') ? 'contain' : 'fill'; try { localStorage.setItem('live-fit', fitMode); } catch (e) {} applyFit(); }
+window.addEventListener('resize', applyFit);
+function openShow() { $('zoom').hidden = false; applyFit(); render(); poke(); const z = $('zoom'); if (z.requestFullscreen) z.requestFullscreen({ navigationUI: 'hide' }).then(applyFit).catch(() => {}); }
 $('stage').onclick = openShow;
 $('showBtn').onclick = openShow;
 /* 슬라이드 쇼: 화면을 누르면 다음 장(왼쪽 1/4을 누르면 이전 장), 2.5초 뒤 버튼·커서 숨김 */
@@ -403,12 +415,14 @@ function closeZoom() { $('zoom').hidden = true; if (document.fullscreenElement) 
 $('zoomClose').onclick = closeZoom;
 $('zPrev').onclick = () => go(S.view - 1);
 $('zNext').onclick = () => go(S.view + 1);
+$('zFit').onclick = toggleFit;
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && !$('zoom').hidden) $('zoom').hidden = true; });
 document.addEventListener('keydown', e => {
   const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
   if (e.key === 'Escape' && !$('zoom').hidden) { closeZoom(); return; }
   if (e.key === 'F5' && S.presenter) { e.preventDefault(); if ($('zoom').hidden) openShow(); return; }
   if (e.key === 'Enter' && !$('zoom').hidden) { e.preventDefault(); go(S.view + 1); return; }
+  if ((e.key === 'f' || e.key === 'F') && !$('zoom').hidden) { e.preventDefault(); toggleFit(); return; }
   if (['ArrowRight', 'PageDown', 'ArrowDown'].includes(e.key) || (e.key === ' ' && (S.presenter || !$('zoom').hidden))) { e.preventDefault(); go(S.view + 1); }
   else if (['ArrowLeft', 'PageUp', 'ArrowUp', 'Backspace'].includes(e.key)) { e.preventDefault(); go(S.view - 1); }
 });
