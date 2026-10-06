@@ -323,7 +323,7 @@ async function firebaseStore() {
     watchState(cb, err) { return stateRef.onSnapshot(s => cb(s.exists ? s.data() : {}), err); },
     setState: p => stateRef.set(p, { merge: true }),
     watchChat(cb, err) {
-      return chat.orderBy('at', 'desc').limit(30).onSnapshot(s => cb(s.docs.map(d => { const x = d.data(); return { id: d.id, name: x.name, text: x.text, host: !!x.host, at: x.at ? x.at.toMillis() : Date.now() }; }).reverse()), err);
+      return chat.orderBy('at', 'desc').limit(20).onSnapshot(s => cb(s.docs.map(d => { const x = d.data(); return { id: d.id, name: x.name, text: x.text, host: !!x.host, at: x.at ? x.at.toMillis() : Date.now() }; }).reverse()), err);
     },
     async send(name, text, host) { const r = await chat.add({ name, text, host: !!host, at: firebase.firestore.FieldValue.serverTimestamp() }); return r.id; },
     del: id => chat.doc(id).delete(),

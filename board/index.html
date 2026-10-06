@@ -280,7 +280,17 @@ async function makeFirestoreStore(cfg) {
       return r.id;
     },
     updateTeacher: (id, p) => tcol.doc(id).update(p),
-    watchFeedback(tid, cb, onErr) { return fdoc(tid).onSnapshot(s => cb(items(s)), onErr); },
+    /* 읽기 횟수 절약: 수업자 본인만 실시간으로 받고, 다른 선생님은 1분마다(화면이 보일 때만) + 내가 쓴 직후에 새로 읽음 */
+    watchFeedback(tid, cb, onErr, live) {
+      if (live) return fdoc(tid).onSnapshot(s => cb(items(s)), onErr);
+      let stop = false;
+      const pull = () => { if (stop) return; fdoc(tid).get().then(s => { if (!stop) cb(items(s)); }).catch(onErr); };
+      pull(); refreshFb = pull;
+      const t = setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 60000);
+      const onVis = () => { if (document.visibilityState === 'visible') pull(); };
+      document.addEventListener('visibilitychange', onVis);
+      return () => { stop = true; clearInterval(t); document.removeEventListener('visibilitychange', onVis); if (refreshFb === pull) refreshFb = null; };
+    },
     addFeedback: (tid, f) => { const id = uid(); return fdoc(tid).set({ items: { [id]: { ...f, checked: false, createdAt: Date.now() } } }, { merge: true }); },
     updateFeedback: (tid, fid, p) => fdoc(tid).update(Object.fromEntries(Object.entries(p).map(([k, v]) => [`items.${fid}.${k}`, v]))),
     deleteFeedback: (tid, fid) => fdoc(tid).update({ [`items.${fid}`]: FV.delete() }),
@@ -293,6 +303,7 @@ async function makeFirestoreStore(cfg) {
   };
 }
 
+let refreshFb = null;
 function makeLocalStore() {
   let adminCb = null;
   const KEY = 'afr-demo-v1-' + GROUP;
@@ -416,7 +427,7 @@ function openTeacher(id) {
   S.current = id; S.feedback = [];
   if (S.unwatchFb) { try { S.unwatchFb(); } catch (e) {} }
   buildPage();
-  S.unwatchFb = S.store.watchFeedback(id, list => { S.feedback = list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); renderFeedback(); }, () => showBanner('피드백을 불러오지 못했습니다. 새로고침해 주세요.'));
+  S.unwatchFb = S.store.watchFeedback(id, list => { S.feedback = list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); renderFeedback(); }, () => showBanner('피드백을 불러오지 못했습니다. 새로고침해 주세요.'), !!(S.me && S.me.id === id));
   renderCards();
 }
 
@@ -460,7 +471,7 @@ function composer(type, onDone) {
   const go = h('button', { type: 'button', class: 'btn', text: '등록', onclick: async () => {
     const text = ta.value.trim(); if (!text) { ta.focus(); return; }
     go.disabled = true;
-    try { await S.store.addFeedback(S.current, { type, text, anon: ANON }); ta.value = ''; onDone && onDone(); }
+    try { await S.store.addFeedback(S.current, { type, text, anon: ANON }); ta.value = ''; onDone && onDone(); refreshFb && refreshFb(); }
     catch (e) { showBanner('등록하지 못했습니다. 인터넷 연결을 확인해 주세요.'); }
     go.disabled = false;
   } });
@@ -500,7 +511,7 @@ function buildPage() {
     return col;
   });
   const peer = h('section', { class: 'panel', 'aria-label': '동료 피드백' },
-    h('div', { class: 'panel-title' }, h('h3', { text: '동료 피드백' }), h('p', { text: '피드백은 이름 없이 익명으로 남습니다. 편하게 의견을 나눠 주세요.' })),
+    h('div', { class: 'panel-title' }, h('h3', { text: '동료 피드백' }), h('p', null, '피드백은 이름 없이 익명으로 남습니다. 편하게 의견을 나눠 주세요. ', own ? null : h('button', { type: 'button', class: 'link-btn', text: '↻ 새로 불러오기', onclick: () => refreshFb && refreshFb() }))),
     h('div', { class: 'peer-grid' }, peerCols));
 
   const lensCards = LENS.map(l => {
@@ -549,7 +560,7 @@ function itemEl(f, withCheck) {
     const del = h('button', { type: 'button', class: 'del', text: '삭제' });
     del.addEventListener('click', () => {
       if (!del.classList.contains('armed')) { del.classList.add('armed'); del.textContent = '한 번 더 누르면 삭제'; setTimeout(() => { del.classList.remove('armed'); del.textContent = '삭제'; }, 3000); return; }
-      S.store.deleteFeedback(S.current, f.id).catch(() => showBanner('삭제하지 못했습니다.'));
+      S.store.deleteFeedback(S.current, f.id).then(() => refreshFb && refreshFb()).catch(() => showBanner('삭제하지 못했습니다.'));
     });
     li.append(del);
   }
