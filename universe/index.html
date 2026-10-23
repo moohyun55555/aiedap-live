@@ -101,7 +101,7 @@ const LENSES = [
   { k: 'exec', e: '🏫', t: '실행 관점', c: '#FFE36E' }
 ];
 const NONE_COLOR = '#DDE3FF';
-const GROUPS = 15, R = 64;
+const GROUPS = 15;
 const params = new URLSearchParams(location.search);
 const CFG = window.FIREBASE_CONFIG || null;
 const DEMO = !CFG || params.has('demo');
@@ -157,10 +157,23 @@ function labelSprite(text, px, color, opacity) {
 })();
 
 /* 모둠 은하 */
-function galaxyCenter(g) {
-  if (!g) return new THREE.Vector3(0, 0, 0);
-  const i = g - 1, y = 1 - (i + 0.5) / GROUPS * 2, r = Math.sqrt(1 - y * y), phi = i * 2.399963;
-  return new THREE.Vector3(Math.cos(phi) * r * R, y * R * 0.75, Math.sin(phi) * r * R);
+/* 실제로 별이 있는 모둠만 골라 고르게 배치합니다. 당일 모둠이 6개든 15개든 우주가 한쪽으로 쏠리지 않습니다. */
+const layout = new Map(); let layoutKey = '', layoutR = 60;
+function galaxyCenter(g) { return (layout.get(g) || new THREE.Vector3(0, 0, 0)).clone(); }
+function relayout(groupList) {
+  const act = [...new Set(groupList.filter(g => g))].sort((a, b) => a - b);
+  const key = act.join(','); if (key === layoutKey) return;
+  layoutKey = key; layout.clear();
+  const n = act.length; layoutR = n <= 1 ? 0 : 18 + 12 * Math.sqrt(n);
+  act.forEach((g, i) => {
+    if (n === 1) { layout.set(g, new THREE.Vector3(0, 0, 0)); return; }
+    const y = 1 - (i + 0.5) / n * 2, r = Math.sqrt(1 - y * y), phi = i * 2.399963;
+    layout.set(g, new THREE.Vector3(Math.cos(phi) * r * layoutR, y * layoutR * 0.75, Math.sin(phi) * r * layoutR));
+  });
+  layout.set(0, n >= 2 ? new THREE.Vector3(0, 0, 0) : new THREE.Vector3(0, -36, 0));
+  for (const [g, gal] of Object.entries(galaxies)) { const c = galaxyCenter(+g); gal.c = c; gal.neb.position.copy(c); gal.lab.position.copy(c).add(new THREE.Vector3(0, 17, 0)); }
+  for (const st of stars.values()) { st.to = starTarget(st.id, homeOf(st.d)); if (!loaded) st.pos.copy(st.to); }
+  if (!loaded) camera.position.setLength(Math.max(90, layoutR * 1.6 + 70));
 }
 const galaxies = {};
 function ensureGalaxy(g) {
@@ -291,6 +304,7 @@ function stepComets(now) {
 let loaded = false, replaying = false;
 const pending = new Set();
 function apply(docs) {
+  relayout(docs.map(([, d]) => d.group || 0));
   const ids = new Set();
   for (const [id, d] of docs) {
     ids.add(id);
@@ -390,14 +404,15 @@ function startDemo() {
   setTimeout(() => banner(''), 5000);
   const fams = '김이박최정강조윤장임한오서신권황안송류홍', given = ['민지', '서연', '지훈', '현우', '수빈', '예린', '도윤', '하은', '준서', '유나', '지민', '태희', '승현', '다은', '경민', '소영', '재원', '나연', '우진', '혜린'];
   const rnd = hash('demo'); const all = [];
-  for (let g = 1; g <= GROUPS; g++) for (let i = 0; i < 10; i++) {
+  const DG = Math.min(15, Math.max(1, +params.get('groups') || 15)), DN = Math.max(DG, +params.get('n') || 150), per = Math.round(DN / DG);
+  for (let g = 1; g <= DG; g++) for (let i = 0; i < per; i++) {
     const id = 'd' + g + '_' + i;
     all.push({ id, d: { name: fams[Math.floor(rnd() * fams.length)] + given[Math.floor(rnd() * given.length)], group: g, lens: LENSES[Math.floor(rnd() * 6)].k, cards: [g + '_c' + i], path: [] }, plan: [] });
   }
   for (const a of all) {
     const g = a.d.group; const n = 6 + Math.floor(rnd() * 9);
     for (let k = 0; k < n; k++) {
-      const og = rnd() < 0.04 ? 1 + Math.floor(rnd() * GROUPS) : g; const i = Math.floor(rnd() * 10);
+      const og = rnd() < 0.04 ? 1 + Math.floor(rnd() * DG) : g; const i = Math.floor(rnd() * per);
       a.plan.push(og + '_c' + i);
     }
   }
