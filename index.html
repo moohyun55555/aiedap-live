@@ -151,6 +151,24 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
 .zoom.idle .x,.zoom.idle .zc{opacity:0;pointer-events:none}
 .showbtn{display:inline-flex;align-items:center;gap:6px}
 
+.starbtn{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent-strong);font-weight:700;font-size:13px}
+.starbtn:hover{background:var(--accent-tint)}
+.cibox{width:min(640px,100%);max-height:calc(100dvh - 32px);overflow:auto}
+.cibox select{height:46px;border:1px solid var(--line-strong);border-radius:10px;padding:0 10px;background:var(--surface-2);font-size:16px;color:var(--fg)}
+.cirow{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:10px}
+.cirow>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lenspick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;border:0;padding:0;margin:0}
+.lenspick legend{font-size:14px;font-weight:700;margin-bottom:6px;padding:0}
+.lenspick label{display:flex;gap:8px;align-items:flex-start;padding:10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface-2);cursor:pointer;font-size:13px;line-height:1.4}
+.lenspick label:has(input:checked){border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent) inset}
+.lenspick input{margin-top:3px;accent-color:var(--accent)}
+.lenspick b{display:block;font-size:14px}
+.lenspick .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:1px}
+.cidone{text-align:center;padding:18px 0;font-size:17px;font-weight:700}
+@media (max-width:480px){.cirow,.lenspick{grid-template-columns:minmax(0,1fr)}}
+.uniov{position:fixed;inset:0;z-index:40;background:#04050D}
+.uniov iframe{width:100%;height:100%;border:0;display:block}
+.uniov .ux{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));min-height:40px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(10,13,32,.7);color:#EEF1FF;font:inherit;font-size:14px;cursor:pointer}
 .modal{position:fixed;inset:0;background:rgba(30,20,14,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
 .mbox{background:var(--surface);border-radius:16px;padding:24px;width:min(400px,100%);display:flex;flex-direction:column;gap:12px}
 .mbox h2{font-size:19px}
@@ -184,6 +202,7 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
       <span class="sub">AIEDAP 마스터교원 신규연수 · 3-4차시 · 동료의 눈으로 수업을 다시 보다</span>
     </div>
     <div class="head-actions">
+      <button type="button" class="starbtn" id="starBtn">⭐ 내 별 띄우기</button>
       <span class="chip" id="roleChip" hidden>발표자 모드</span>
       <button type="button" class="textbtn" id="presenterBtn">발표자 로그인</button>
     </div>
@@ -213,6 +232,7 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
           <button type="button" class="btn" id="recallBtn">모두 내 화면으로</button>
           <button type="button" class="btn ghost toggle" id="lockBtn" aria-pressed="false">참가자 넘김 잠그기</button>
           <button type="button" class="btn ghost toggle" id="pauseBtn" aria-pressed="false">채팅 일시정지</button>
+          <a class="btn ghost" href="universe/" target="_blank" rel="noopener">🌌 혼자가 아닌 별들 열기</a>
         </div>
       </section>
 
@@ -273,11 +293,34 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
   <div class="zc"><button type="button" id="zPrev" aria-label="이전">‹</button><span id="zCount"></span><button type="button" id="zNext" aria-label="다음">›</button><button type="button" class="fit" id="zFit">화면 꽉 채우기</button></div>
 </div>
 
+<div class="uniov" id="uniOv" hidden>
+  <iframe id="uniFrame" title="혼자가 아닌 별들" allow="fullscreen"></iframe>
+  <button type="button" class="ux" id="uniClose">닫고 연수 사이트로 ✕</button>
+</div>
+
+<div class="modal" id="starModal" hidden>
+  <form class="mbox cibox" id="starForm">
+    <h2>⭐ 우주에 내 별 띄우기</h2>
+    <p class="sub" style="margin:0">오늘 이 자리의 선생님 한 분 한 분이 별입니다.</p>
+    <div class="cirow">
+      <div><label for="ciName" class="sub">성함</label><input id="ciName" maxlength="20" autocomplete="name" placeholder="예: 김민지"></div>
+      <div><label for="ciGroup" class="sub">모둠</label><select id="ciGroup"></select></div>
+    </div>
+    <fieldset class="lenspick" id="ciLens"><legend>내 수업에서 가장 신경 쓰는 렌즈 하나를 골라 주세요</legend></fieldset>
+    <div class="err" id="ciErr" role="alert"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button type="button" class="textbtn" id="ciPresenter" style="margin-right:auto">강사 · 발표자 로그인</button>
+      <button type="button" class="btn ghost" id="ciClose" hidden>닫기</button>
+      <button type="submit" class="btn">내 별 띄우기 ✨</button>
+    </div>
+  </form>
+</div>
+
 <div class="modal" id="loginModal" hidden>
   <form class="mbox" id="loginForm">
     <h2>발표자 로그인</h2>
     <p class="sub" style="margin:0">강사만 사용합니다. 로그인하면 내가 넘기는 슬라이드가 참가자 화면에 함께 보입니다.</p>
-    <label for="pwIn" class="sub">비밀번호</label>
+    <label for="pwIn" class="sub">발표자 비밀번호 (숫자 8자리)</label>
     <input id="pwIn" type="password" autocomplete="current-password">
     <div class="err" id="loginErr" role="alert"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -288,6 +331,7 @@ header h1{font-size:clamp(18px,2.2vw,22px);font-weight:700;letter-spacing:-.01em
 </div>
 
 <script src="firebase-config.js"></script>
+<script src="universe-client.js"></script>
 <script>
 const TOTAL = 24;
 const NOTES = {"4": {"title": "여는 질문", "html": "<p>내 교실 맨 앞자리에 챗GPT가 떡하니 앉아 있다고 생각해볼까요?</p><p><strong>&quot;챗GPT가 교실에 앉아 있습니다. 무엇을 가르치시겠습니까?&quot;</strong></p><p>옆 선생님과 30초 동안 생각을 나눠 보시기 바랍니다. 정답을 찾는 질문이 아니라, 오늘 활동의 문을 여는 질문입니다.</p>"}, "5": {"title": "지금 우리가 하는 교육은 여전히 유효한가?", "html": "<p>지금 우리가 하는 교육은 여전히 유효할까요?</p><p>사진처럼 같은 책상에 앉아 같은 문제를 푸는 모습은 20세기 교육이 거둔 성공의 상징이었습니다.</p><p>그런데 정답을 빠르고 정확하게 찾는 능력은 이제 AI가 가장 잘하는 일이 되었습니다. 그래서 20세기의 성공이 지금은 오히려 문제가 됩니다.</p><p><strong>우리가 AI 시대에 가장 빠르게 도태될 사람을 길러 온 것은 아닌지</strong>, 뼈아프지만 돌아볼 때입니다.</p>"}, "6": {"title": "수업을 바라보는 질문이 바뀝니다", "html": "<p>그렇다면 수업을 바라보는 질문도 달라져야 합니다.</p><p>&#x27;무엇을 알고 있는가&#x27;는 &#x27;<strong>너만의 독창성은 무엇인가</strong>&#x27;로, &#x27;결과물이 완성되었는가&#x27;는 &#x27;<strong>과정과 근거가 보이는가</strong>&#x27;로, &#x27;디지털 도구를 사용할 수 있는가&#x27;를 넘어, 이제는 &#x27;<strong>AI와 함께 협업하여 무엇을 할 것인가</strong>&#x27;를 물어야 합니다.</p><p>AI로 격변하는 시대, 우리 수업이 확인해야 할 것도 함께 옮겨 가고 있습니다.</p>"}, "7": {"title": "그래서 필요한 자세", "html": "<p>특정 지식이나 도구보다 더 중요한 것은 &#x27;자세&#x27;입니다.</p><p><strong>어떤 시대가 오더라도 새로운</strong> <strong>지식을 배우는 것을 기꺼이 즐기는 사람</strong>,</p><p>그리고 <strong>자신이 가진 지식과 정보를 나누고 확장하며 사회와 연대</strong>하는 사람입니다.</p><p>이는 우리가 길러야 할 학생의 모습이자, 바로 우리 교사에게 필요한 모습이기도 합니다.</p>"}, "8": {"title": "좋은 AI 융합수업은 혼자 완성되지 않습니다", "html": "<p><strong>좋은 AI 융합수업은 혼자 완성되지 않습니다.</strong></p><p>좋은 수업은 교사 한 사람의 눈만으로는 다 보기 어렵기 때문입니다.</p><p>그래서 오늘은 서로의 수업을 함께 들여다보겠습니다.</p>"}, "9": {"title": "학습 목표", "html": "<p>이번 연수의 학습 목표는 세 가지입니다.</p><p>첫째, <strong>내 수업 사례와 도움받고 싶은 질문을 동료에게 공유하는 것</strong>입니다</p><p>둘째, <strong>동료 수업의 강점과 고려할 점을 근거와 함께 나누는 것</strong>입니다.</p><p>셋째, <strong>협의를 바탕으로 내 수업의 개선 방향 3가지를 정하는 것</strong>입니다.</p><p>오늘 손에 쥐고 가실 최종 산출물이 바로 이 &#x27;개선 방향 3가지&#x27;이며, 실천 및 성찰 보고서와 이후 Re-design 모듈로 이어집니다.</p>"}, "11": {"title": "PART 2 · 사례 공유하기", "html": "<p>이제 AIEDAP 홈페이지의 공유마당에 내 수업을 올리고, 우리 모둠원들의 수업안을 내려받겠습니다.</p><p>동료의 수업안을 미리 가지고 있어야 모둠 피드백 시간이 훨씬 깊어집니다.</p>"}, "12": {"title": "공유 전, 두 가지를 확인해요", "html": "<p>첫째는 <strong>학생 정보 비식별 처리</strong>입니다. 학생 이름이나 사진, 장애 관련 정보가 지도안에 남아 있지 않은지 반드시 확인해 주시기 바랍니다.</p><p>둘째는 <strong>모든 항목 입력</strong>입니다. 모든 내용이 입력되어 있어야 공유마당에 공유됩니다.</p>"}, "13": {"title": "STEP 1 · 나의 수업 보관함에서 시작해요", "html": "<p>먼저 AIEDAP 홈페이지에 접속합니다.</p><p>왼쪽 메뉴에서 &#x27;<strong>나의 수업 보관함</strong>&#x27;을 열어 주시기 바랍니다.</p>"}, "14": {"title": "STEP 2 · 공유마당에 공유하기", "html": "<p>수업안 상세 화면으로 들어가 아래쪽으로 내려가시면 <strong>&#x27;공유마당에 공유하기&#x27;</strong> 버튼이 있습니다.</p><p>이 버튼을 누르시면 내 수업이 공유마당에 올라갑니다.</p>"}, "15": {"title": "STEP 3 · 모둠원 수업안 내려받기", "html": "<p>공유마당에서 내 자료가 잘 올라갔는지 먼저 확인해 주시기 바랍니다.</p><p>그다음 <strong>모둠원의 이름이나 수업명으로 검색</strong>해서, 모둠원들의 지도안을 모두 내려받아 주십시오.</p>"}, "16": {"title": "PART 3 · 모둠별 피드백", "html": "<p>이제 오늘의 하이라이트, 모둠별 피드백 시간입니다.</p><p>동료의 렌즈를 빌려 내 수업을 다시 보고, 개선 방향을 찾아가 보겠습니다.</p>"}, "17": {"title": "모둠별 사이트로 이동해요", "html": "<p><strong>연수 사이트 메인 화면에서 모둠별 활동 사이트로 이동합니다.</strong></p><p>이동 전에 세 가지를 체크해 주십시오.</p><p><strong>내 수업안을 공유마당에 올렸는지</strong>, <strong>모둠원 수업안을 전부 내려받았는지</strong>, <strong>연수 사이트에서 우리 모둠 페이지를 열었는지</strong>입니다.</p><p>퍼실리테이터 선생님께서는 모든 모둠원이 준비되었는지 확인해 주시고, 아직인 분이 계시면 다운로드를 함께 도와주시기 바랍니다.</p>"}, "18": {"title": "모둠 사이트의 내 페이지에 두 가지를 입력해요", "html": "<p>첫 번째는 <strong>내 수업 한 줄 소개</strong>입니다. 어떤 교과·학년에서 AI를 어떻게 활용했는지, 예를 들어 &quot;생성형 AI로 가설을 세우고 실험으로 검증한 수업&quot;처럼 한 줄로 써 주시면 됩니다.</p><p>두 번째는 <strong>도움받고 싶은 질문</strong>으로, 설계나 실행에서 실제로 고민했던 한 가지를 적습니다.</p>"}, "19": {"title": "내 수업 발표하기", "html": "<p>이제 한 사람씩 돌아가며 내 수업을 발표하겠습니다.</p><p>먼저 교과·학년, AI를 활용한 방식, 주요 활동 등 <strong>수업 개요</strong>를 소개해 주십시오. 이어서 학생 반응이 좋았던 <strong>잘 작동한 장면</strong> 하나를 들려주시기 바랍니다.</p><p>마지막으로 동료에게 묻고 싶은 고민, 즉 <strong>도움받고 싶은 질문</strong> 하나로 발표를 마무리합니다. 시간은 타이머로 안내해 드리니, 핵심 위주로 이야기해 주시기 바랍니다.</p>"}, "20": {"title": "피드백은 이렇게 써요", "html": "<p><strong>배우고 싶은 점</strong>은 내 수업에도 반영하고 싶은 부분으로, &quot;이 도구는 우리 반에서도 효과적일 것 같아요&quot;처럼 씁니다.</p><p><strong>더 알고 싶은 점</strong>은 설명만으로는 그려지지 않는 부분으로, &quot;학생들이 처음에 어려워하지는 않았나요?&quot;처럼 묻습니다.</p><p><strong>적용 아이디어</strong>는 발표자의 질문에 대한 대안과 제안으로, &quot;이렇게 바꿔서 적용해 보면 어떨까요?&quot;처럼 건넵니다.</p><p>부족한 점을 지적하기보다 잘 작동한 요소를 먼저 말해 주시고, 세 가지를 쓴 뒤에는 <strong>6가지 성찰 관점으로도 선생님의 수업을 피드백</strong>해 주시기 바랍니다.</p>"}, "21": {"title": "동료 피드백 작성하기", "html": "<p><strong>6가지 성찰 관점을 근거로 삼아 피드백을 더해 주시기 바랍니다. </strong></p>"}, "22": {"title": "개선 방향 설정하고 나누기", "html": "<p>이제 동료들의 피드백을 바탕으로 <strong>내 수업의 개선 방향 3가지</strong>를 정해 보겠습니다.</p><p>방향을 정하셨다면, 모둠 안에서 한 분씩 돌아가며 내 개선 방향 3가지를 소개해 주십시오.</p><p>발표를 들은 동료들은 응원의 한 마디나 추가 제언을 더해 주시기 바랍니다.</p><p>여기서 정리한 방향은 <strong>실천 및 성찰 보고서와 Re-design 모듈에서 다시 활용</strong>됩니다.</p>"}, "23": {"title": "나의 실천 방향 작성하기", "html": "<p>이제 모인 피드백을 개별로 확인하고, 나의 실천 방향을 AIEDAP에 기록해 두겠습니다.</p><p>홈페이지의 <strong>&#x27;AI 융합수업 성찰해보기&#x27;</strong> 메뉴에서 내 수업을 선택한 뒤, 잘된 점·개선할 점·다음 수업 계획 칸을 채워 주시기 바랍니다.</p><p>이때 <strong>무엇을 바꿀지, 어느 수업 단계에서 적용할지, 어떻게 운영할지, 무엇으로 개선 여부를 확인할지</strong>가 드러나도록 써 주십시오. 이 네 가지가 분명할수록 다음 수업에서 정말로 실천할 수 있는 계획이 됩니다.</p>"}, "24": {"title": "수고하셨습니다", "html": "<p><strong>공자는 『논어』에서 &quot;배우기만 하고 생각하지 않으면 얻는 것이 없고, 생각하기만 하고 배우지 않으면 위태롭다&quot;고 말했습니다.</strong> 오늘 우리는 동료의 수업에서 배우고, 그 배움을 내 수업에 비추어 생각해 보았습니다.</p><p>오늘 함께한 귀한 시간이,  각자 선생님들의 교실에서 성장의 첫걸음이 되기를 응원하며 마치겠습니다. 감사합니다.</p>"}};
@@ -521,7 +565,8 @@ function setPresenter(on) {
   S.presenter = on;
   $('pbar').hidden = !on; $('roleChip').hidden = !on;
   $('presenterBtn').textContent = on ? '발표자 로그아웃' : '발표자 로그인';
-  if (on) { S.view = S.live.slide || 1; S.following = true; }
+  if (on) { S.view = S.live.slide || 1; S.following = true; $('starModal').hidden = true; }
+  else setTimeout(autoStar, 0);
   render(); renderChat(); renderCompose();
 }
 function renderPresenterBar() {
@@ -533,13 +578,65 @@ function renderPresenterBar() {
 
 /* ---------- 시작 ---------- */
 let store;
+/* ---------- 혼자가 아닌 별들: 내 별 체크인 ---------- */
+function renderStarBtn() {
+  const m = Universe.me(), l = Universe.lensOf(m.lens);
+  $('starBtn').textContent = m.name && m.lens ? `${l ? l.e : '⭐'} 내 별 · ${m.name}` : '⭐ 내 별 띄우기';
+}
+function openStar() {
+  const m = Universe.me();
+  const sel = $('ciGroup'); if (!sel.options.length) { sel.append(new Option('아직 몰라요', '0')); for (let i = 1; i <= 15; i++) sel.append(new Option(i + '모둠', String(i))); }
+  sel.value = String(m.group || 0);
+  const box = $('ciLens'); box.querySelectorAll('label').forEach(x => x.remove());
+  for (const l of Universe.LENSES) {
+    const inp = document.createElement('input'); inp.type = 'radio'; inp.name = 'ciLens'; inp.value = l.k; inp.checked = m.lens === l.k;
+    const lab = document.createElement('label'); const sp = document.createElement('span');
+    const b = document.createElement('b'); const dot = document.createElement('i'); dot.className = 'dot'; dot.style.background = l.c;
+    b.append(dot, `${l.e} ${l.t}`); sp.append(b, l.q); lab.append(inp, sp); box.append(lab);
+  }
+  $('ciName').value = m.name || S.name || ''; $('ciErr').textContent = ''; $('ciClose').hidden = !(m.name && m.lens);
+  $('starModal').hidden = false; setTimeout(() => $('ciName').focus(), 30);
+}
+$('starBtn').onclick = openStar;
+$('ciClose').onclick = () => { $('starModal').hidden = true; };
+$('ciPresenter').onclick = () => $('presenterBtn').onclick();
+const needStar = () => { const m = Universe.me(); return !(m.name && m.lens); };
+function autoStar() { if (window.Universe && !S.presenter && needStar() && $('starModal').hidden) openStar(); }
+$('starForm').onsubmit = e => {
+  e.preventDefault();
+  const name = $('ciName').value.trim().replace(/\s*선생님\s*$/, '').slice(0, 20);
+  const lens = (document.querySelector('input[name="ciLens"]:checked') || {}).value;
+  if (!name) { $('ciErr').textContent = '성함을 입력해 주세요.'; $('ciName').focus(); return; }
+  if (!lens) { $('ciErr').textContent = '렌즈를 하나 골라 주세요.'; return; }
+  Universe.checkIn({ name, group: $('ciGroup').value, lens });
+  renderStarBtn();
+  const l = Universe.lensOf(lens);
+  const done = document.createElement('div'); done.className = 'cidone'; done.textContent = `✨ ${name} 선생님의 ${l.e} 별이 우주에 떴어요!`;
+  const form = $('starForm'); const keep = [...form.children]; keep.forEach(x => x.hidden = true); form.append(done);
+  setTimeout(() => { $('starModal').hidden = true; done.remove(); keep.forEach(x => x.hidden = false); $('ciErr').hidden = false; }, 1800);
+};
+
+/* ---------- 발표자가 '모두의 화면에 띄우기'를 누르면 우주를 덮어 띄움 ---------- */
+let uniSeen = null;
+function handleUni(st) {
+  if (S.presenter) return;
+  if (st.uniOpen && st.uniShow && st.uniShow !== uniSeen) {
+    uniSeen = st.uniShow;
+    $('uniFrame').src = 'universe/?snap=1&v=' + st.uniShow;
+    $('uniOv').hidden = false; $('starModal').hidden = true;
+  } else if (!st.uniOpen && !$('uniOv').hidden) { $('uniOv').hidden = true; $('uniFrame').src = 'about:blank'; }
+}
+$('uniClose').onclick = () => { $('uniOv').hidden = true; $('uniFrame').src = 'about:blank'; };
+
 (async function start() {
   buildPlan();
   try { store = CFG ? await firebaseStore() : demoStore(); }
   catch (e) { store = demoStore(); banner('실시간 서버에 연결하지 못했습니다. 새로고침해 주세요.'); }
   if (store.mode === 'demo') banner('체험판입니다. 같은 브라우저의 다른 탭과만 동기화됩니다. 발표자 비밀번호는 demo 입니다.');
   if (S.name) $('nameIn').value = S.name;
+  if (window.Universe) { Universe.attach(); renderStarBtn(); setTimeout(autoStar, 400); }
   store.watchState(st => {
+    handleUni(st);
     const prevRecall = S.seenRecall;
     S.live = { slide: st.slide || 1, recall: st.recall || 0, lock: !!st.lock, chatPaused: !!st.chatPaused };
     if (S.presenter) { renderPresenterBar(); renderCompose(); render(); return; }

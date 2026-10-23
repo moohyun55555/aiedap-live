@@ -192,7 +192,7 @@ body{padding-bottom:84px}
   <form class="modal-box" id="adminForm">
     <h2>관리자 로그인</h2>
     <p class="muted" style="margin:0;font-size:14px">강사만 사용합니다. 로그인하면 선생님 카드를 삭제할 수 있습니다.</p>
-    <label for="adminPw" class="muted" style="font-size:13px">비밀번호 (발표자 비밀번호와 같음)</label>
+    <label for="adminPw" class="muted" style="font-size:13px">비밀번호 (발표자 비밀번호와 같음 · 숫자 8자리)</label>
     <input id="adminPw" type="password" autocomplete="current-password">
     <div class="err" id="adminErr" role="alert"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -222,6 +222,7 @@ body{padding-bottom:84px}
 </div>
 
 <script src="../firebase-config.js"></script>
+<script src="../universe-client.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script>
 /* ===== 설정: Firebase 프로젝트를 만든 뒤 아래에 웹 앱 설정값을 붙여 넣으면 실시간 모드로 바뀝니다. 비워 두면 체험판(이 브라우저에만 저장)으로 동작합니다. ===== */
@@ -410,7 +411,7 @@ const isOwner = () => S.me && S.me.id === S.current;
 
 /* ---------- 이름 입력 ---------- */
 function openNameModal(prefill) {
-  $('nameModal').hidden = false; $('nameInput').value = prefill || ''; $('nameErr').textContent = '';
+  $('nameModal').hidden = false; $('nameInput').value = prefill || (window.Universe && Universe.me().name) || ''; $('nameErr').textContent = '';
   setTimeout(() => $('nameInput').focus(), 30);
 }
 $('nameForm').addEventListener('submit', async e => {
@@ -421,6 +422,7 @@ $('nameForm').addEventListener('submit', async e => {
   try {
     const id = await S.store.ensureTeacher(name);
     S.me = { id, name }; lsSet(ME_KEY, JSON.stringify(S.me));
+    window.Universe && Universe.registerCard(GROUP, id, name);
     $('nameModal').hidden = true; renderMe(); openTeacher(id);
   } catch (err) { $('nameErr').textContent = '입장하지 못했습니다. 인터넷 연결을 확인하고 다시 눌러 주세요.'; }
   btn.disabled = false;
@@ -449,6 +451,7 @@ function renderCards() {
 function openTeacher(id) {
   if (S.current === id && S.built === id) return;
   S.current = id; S.feedback = [];
+  if (window.Universe && S.me) Universe.visit(GROUP, id);
   if (S.unwatchFb) { try { S.unwatchFb(); } catch (e) {} }
   buildPage();
   S.unwatchFb = S.store.watchFeedback(id, list => { S.feedback = list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); renderFeedback(); }, () => showBanner('피드백을 불러오지 못했습니다. 새로고침해 주세요.'), !!(S.me && S.me.id === id));
@@ -854,6 +857,7 @@ function showBanner(text) { const b = $('banner'); b.textContent = text; b.hidde
   document.title = `[${GROUP}모둠] AI 융합수업 함께 들여다보기`;
   try { const cfg = boardConfig(GROUP); S.store = cfg ? await makeFirestoreStore(cfg) : makeLocalStore(); }
   catch (e) { S.store = makeLocalStore(); showBanner('실시간 서버에 연결하지 못해 체험판으로 열었습니다. 새로고침해 보세요.'); }
+  window.Universe && Universe.attach();
   if (S.store.mode === 'demo' && $('banner').hidden) showBanner('체험판입니다. 예시 선생님 3명이 들어 있고, 입력한 내용은 이 브라우저에만 저장됩니다.');
   try { const m = JSON.parse(lsGet(ME_KEY) || 'null'); if (m && m.id && m.name) S.me = m; } catch (e) {}
   let first = true;
@@ -863,6 +867,7 @@ function showBanner(text) { const b = $('banner'); b.textContent = text; b.hidde
     if (first) {
       first = false;
       if (S.me && !byId(S.me.id)) S.me = null;
+      if (S.me && window.Universe) Universe.registerCard(GROUP, S.me.id, S.me.name);
       renderMe();
       if (!S.me) openNameModal(); else if (!S.current) openTeacher(S.me.id);
     }

@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>혼자가 아닌 별들</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#04050D;--fg:#EEF1FF;--muted:#A9B0CF;--line:rgba(255,255,255,.14);--panel:rgba(10,13,32,.62);--accent:#FFB547;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:'IBM Plex Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;overflow:hidden}
+[hidden]{display:none!important}
+canvas{display:block}
+#stage{position:fixed;inset:0}
+.hud{position:fixed;pointer-events:none;z-index:2}
+.hud *{pointer-events:auto}
+.title{top:22px;left:26px}
+.title h1{margin:0;font-size:clamp(22px,2.4vw,40px);font-weight:700;letter-spacing:-.01em;text-shadow:0 0 24px rgba(120,150,255,.45)}
+.title p{margin:6px 0 0;color:var(--muted);font-size:clamp(13px,1.1vw,18px)}
+.stats{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 14px;backdrop-filter:blur(6px)}
+.stat b{display:block;font-size:clamp(18px,1.8vw,30px);font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.legend{left:26px;bottom:22px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:grid;grid-template-columns:repeat(2,auto);gap:4px 18px;font-size:13px;backdrop-filter:blur(6px)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;box-shadow:0 0 8px currentColor}
+.legend em{font-style:normal;color:var(--muted);margin-left:4px;font-variant-numeric:tabular-nums}
+.ctrls{right:22px;bottom:22px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 44px)}
+.ctrls button,.mbox button{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;font-size:14px;cursor:pointer;backdrop-filter:blur(6px)}
+.ctrls button:hover{border-color:rgba(255,255,255,.4)}
+.ctrls button.primary{background:var(--accent);color:#2A1700;border-color:var(--accent);font-weight:700}
+.ctrls button[aria-pressed="false"]{color:var(--muted)}
+.feed{top:22px;right:22px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;max-width:min(380px,40vw)}
+.feed div{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;animation:fade 6s forwards;backdrop-filter:blur(6px)}
+@keyframes fade{0%{opacity:0;transform:translateY(-6px)}8%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+.banner{top:auto;bottom:80px;left:50%;transform:translateX(-50%);background:#3A331C;color:#F1E3A6;border:1px solid #6B5E2A;border-radius:10px;padding:8px 14px;font-size:13px}
+.empty{top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--muted);font-size:clamp(15px,1.4vw,22px);line-height:1.7}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:5;padding:16px}
+.mbox{background:#121633;border:1px solid var(--line);border-radius:16px;padding:22px;width:min(400px,100%);display:flex;flex-direction:column;gap:12px}
+.mbox h2{margin:0;font-size:18px}
+.mbox p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.mbox input{height:44px;border-radius:10px;border:1px solid var(--line);background:#0B0E24;color:var(--fg);padding:0 12px;font-size:16px}
+.mbox .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.mbox .danger{background:#B3261E;border-color:#B3261E;font-weight:700}
+.err{color:#FF8A80;font-size:13px;min-height:18px}
+@media (max-width:700px){.legend{display:none}.feed{display:none}.title{left:14px;top:14px}.ctrls{right:12px;bottom:12px}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div class="hud title">
+  <h1>혼자가 아닌 별들</h1>
+  <p>오늘 우리는 서로의 수업을 오가며 서로 연결되었습니다.</p>
+  <div class="stats">
+    <div class="stat"><b id="nStars">0</b><span>반짝이는 별</span></div>
+    <div class="stat"><b id="nTrips">0</b><span>오간 횟수</span></div>
+    <div class="stat"><b id="nCross">0</b><span>모둠을 넘나든 횟수</span></div>
+  </div>
+</div>
+<div class="hud feed" id="feed" aria-live="polite"></div>
+<div class="hud legend" id="legend"></div>
+<div class="hud empty" id="empty">아직 우주가 조용합니다.<br>연수 사이트에서 <b>⭐ 내 별 띄우기</b>를 누르면 이곳에 별이 떠요.</div>
+<div class="hud banner" id="banner" hidden></div>
+<div class="hud ctrls">
+  <button type="button" class="primary" id="replayBtn">▶ 오늘의 여정 다시 보기</button>
+  <button type="button" id="shareBtn">📡 모두의 화면에 띄우기</button>
+  <button type="button" id="namesBtn" aria-pressed="true">이름 표시</button>
+  <button type="button" id="rotateBtn" aria-pressed="true">자동 회전</button>
+  <button type="button" id="fullBtn">전체 화면 (F)</button>
+  <button type="button" id="adminBtn">관리</button>
+</div>
+
+<div class="modal" id="adminModal" hidden>
+  <form class="mbox" id="adminForm">
+    <h2>관리</h2>
+    <p id="adminInfo">발표자 비밀번호(숫자 8자리)로 로그인하면 리허설 기록을 지우고 우주를 비울 수 있습니다.</p>
+    <div id="loginPart"><input id="adminPw" type="password" autocomplete="current-password" aria-label="발표자 비밀번호 (숫자 8자리)" placeholder="발표자 비밀번호 (숫자 8자리)" style="width:100%"></div>
+    <div class="err" id="adminErr" role="alert"></div>
+    <div class="row">
+      <button type="button" id="adminClose">닫기</button>
+      <button type="submit" id="adminGo">로그인</button>
+      <button type="button" class="danger" id="clearBtn" hidden>우주 비우기</button>
+    </div>
+  </form>
+</div>
+
+<script src="../firebase-config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegments2.js"></script>
+<script>
+const LENSES = [
+  { k: 'edu', e: '🎯', t: '교육적 관점', c: '#FFB547' },
+  { k: 'learner', e: '👦', t: '학습자 관점', c: '#6FD3FF' },
+  { k: 'tech', e: '💻', t: '기술적 관점', c: '#B494FF' },
+  { k: 'eval', e: '📋', t: '평가 관점', c: '#7BF0A6' },
+  { k: 'ethics', e: '🛡️', t: '윤리적 관점', c: '#FF7FAE' },
+  { k: 'exec', e: '🏫', t: '실행 관점', c: '#FFE36E' }
+];
+const NONE_COLOR = '#DDE3FF';
+const GROUPS = 15, R = 64;
+const params = new URLSearchParams(location.search);
+const CFG = window.FIREBASE_CONFIG || null;
+const DEMO = !CFG || params.has('demo');
+const $ = id => document.getElementById(id);
+const lensColor = k => (LENSES.find(l => l.k === k) || {}).c || NONE_COLOR;
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.append(s); }); }
+function banner(t) { $('banner').textContent = t; $('banner').hidden = !t; }
+function hash(str) { let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; } return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; }; }
+function feed(text) { const d = document.createElement('div'); d.textContent = text; $('feed').prepend(d); while ($('feed').children.length > 5) $('feed').lastChild.remove(); setTimeout(() => d.remove(), 6200); }
+
+/* ---------- 장면 ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+$('stage').append(renderer.domElement);
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x04050D, 0.0022);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 3000);
+camera.position.set(0, 52, 150);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.06; controls.autoRotate = true; controls.autoRotateSpeed = 0.45;
+controls.minDistance = 20; controls.maxDistance = 520;
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+function glowTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, 'rgba(255,255,255,.85)'); gr.addColorStop(0.42, 'rgba(255,255,255,.22)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c);
+}
+const GLOW = glowTexture();
+function labelSprite(text, px, color, opacity) {
+  const c = document.createElement('canvas'); const g = c.getContext('2d');
+  const font = `600 ${px}px 'IBM Plex Sans KR','Malgun Gothic',sans-serif`; g.font = font;
+  const w = Math.ceil(g.measureText(text).width) + px; c.width = w; c.height = Math.ceil(px * 1.5);
+  g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = 'rgba(0,0,0,.9)'; g.shadowBlur = px / 3;
+  g.fillStyle = color; g.fillText(text, w / 2, c.height / 2);
+  const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: opacity ?? 1, depthWrite: false }));
+  sp.userData.aspect = w / c.height; return sp;
+}
+
+/* 배경 별 */
+(function () {
+  const n = 5000, pos = new Float32Array(n * 3), col = new Float32Array(n * 3); const rnd = hash('bg');
+  for (let i = 0; i < n; i++) {
+    const r = 380 + rnd() * 900, th = rnd() * Math.PI * 2, ph = Math.acos(2 * rnd() - 1);
+    pos.set([r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th)], i * 3);
+    const b = 0.45 + rnd() * 0.55; col.set([b * (0.8 + rnd() * 0.2), b * (0.85 + rnd() * 0.15), b], i * 3);
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ size: 1.6, vertexColors: true, transparent: true, opacity: 0.8, depthWrite: false })));
+})();
+
+/* 모둠 은하 */
+function galaxyCenter(g) {
+  if (!g) return new THREE.Vector3(0, 0, 0);
+  const i = g - 1, y = 1 - (i + 0.5) / GROUPS * 2, r = Math.sqrt(1 - y * y), phi = i * 2.399963;
+  return new THREE.Vector3(Math.cos(phi) * r * R, y * R * 0.75, Math.sin(phi) * r * R);
+}
+const galaxies = {};
+function ensureGalaxy(g) {
+  if (galaxies[g]) return galaxies[g];
+  const c = galaxyCenter(g), hue = g ? ((g * 0.137) % 1) : 0.62;
+  const neb = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: new THREE.Color().setHSL(hue, 0.65, 0.5), transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }));
+  neb.position.copy(c); neb.scale.set(46, 46, 1); scene.add(neb);
+  const lab = labelSprite(g ? g + '모둠' : '모둠을 정하는 중', 44, 'rgba(220,228,255,.85)');
+  lab.position.copy(c).add(new THREE.Vector3(0, 17, 0)); lab.scale.set(3.4 * lab.userData.aspect, 3.4, 1); scene.add(lab);
+  const rnd = hash('tilt' + g);
+  galaxies[g] = { c, neb, lab, tilt: new THREE.Euler((rnd() - 0.5) * 0.7, rnd() * Math.PI, (rnd() - 0.5) * 0.7) };
+  return galaxies[g];
+}
+
+/* ---------- 별 ---------- */
+const stars = new Map();      // anon → star
+let cardOwner = new Map();    // "모둠_카드id" → anon
+let showNames = true;
+function homeOf(d) { return d.group || 0; }
+function starTarget(id, g) {
+  /* 모둠 안의 별은 작은 공 모양으로 퍼뜨려, 어느 방향에서 봐도 모둠원 사이 연결망이 보이게 합니다 */
+  const gal = ensureGalaxy(g), rnd = hash(id);
+  const r = 7 + Math.cbrt(rnd()) * 10, th = rnd() * Math.PI * 2, ph = Math.acos(2 * rnd() - 1);
+  return new THREE.Vector3(r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph) * 0.8, r * Math.sin(ph) * Math.sin(th)).add(gal.c);
+}
+function makeStar(id, d, animate) {
+  const color = new THREE.Color(lensColor(d.lens));
+  const core = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const grp = new THREE.Group(); grp.add(halo, core); scene.add(grp);
+  const pos = starTarget(id, homeOf(d));
+  grp.position.copy(pos);
+  const s = { id, d, grp, core, halo, color, pos: pos.clone(), to: pos.clone(), born: animate ? performance.now() : -1e9, tw: Math.random() * 6.28, label: null, pulse: 0 };
+  setLabel(s); stars.set(id, s);
+  if (animate) feed(`✨ ${d.name} 선생님의 별이 떴어요`);
+  return s;
+}
+function setLabel(s) {
+  if (s.label) { scene.remove(s.label); s.label.material.map.dispose(); }
+  s.label = labelSprite(s.d.name || '', 40, 'rgba(240,244,255,.92)'); s.label.scale.set(1.5 * s.label.userData.aspect, 1.5, 1);
+  s.label.visible = showNames; scene.add(s.label);
+}
+function updateStar(s, d) {
+  const old = s.d; s.d = d;
+  if (old.lens !== d.lens) { s.color.set(lensColor(d.lens)); s.halo.material.color.copy(s.color); }
+  if (old.name !== d.name) setLabel(s);
+  if (homeOf(old) !== homeOf(d)) s.to = starTarget(s.id, homeOf(d));
+}
+
+/* ---------- 길(선): 내 별 ↔ 들른 선생님 별. 여러 번 오갈수록 굵고 밝아집니다 ---------- */
+const TIERS = [{ w: 1.4, o: 0.42 }, { w: 2.8, o: 0.62 }, { w: 4.2, o: 0.8 }, { w: 6, o: 0.95 }];
+const tierObjs = TIERS.map(t => {
+  const m = new THREE.LineMaterial({ linewidth: t.w, vertexColors: true, transparent: true, opacity: t.o, depthWrite: false });
+  m.blending = THREE.AdditiveBlending; m.resolution.set(innerWidth, innerHeight);
+  const o = new THREE.LineSegments2(new THREE.LineSegmentsGeometry(), m); o.frustumCulled = false; o.visible = false; scene.add(o); return o;
+});
+addEventListener('resize', () => tierObjs.forEach(o => o.material.resolution.set(innerWidth, innerHeight)));
+let shown = new Map();   // 그려진 방문 key → {a: 방문한 별, b: 방문받은 별}
+let linesDirty = true, lastBuild = 0;
+function wantedVisits() {
+  const out = [];
+  for (const s of stars.values()) {
+    const seen = {}; let step = 0;
+    for (const key of (s.d.path || [])) {
+      const owner = cardOwner.get(key); const t = owner && stars.get(owner);
+      if (!t || t === s) continue;
+      seen[t.id] = (seen[t.id] || 0) + 1;
+      out.push({ key: s.id + '>' + t.id + '#' + seen[t.id], a: s, b: t, step: step++ });
+    }
+  }
+  return out;
+}
+const pairKey = (a, b) => a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id;
+function rebuildLines() {
+  const pairs = new Map();
+  for (const v of shown.values()) { const k = pairKey(v.a, v.b); const p = pairs.get(k) || { a: v.a, b: v.b, n: 0 }; p.n++; pairs.set(k, p); }
+  const buf = TIERS.map(() => ({ p: [], c: [] }));
+  let cross = 0, total = 0, strong = 0;
+  for (const p of pairs.values()) {
+    total += p.n; if (homeOf(p.a.d) !== homeOf(p.b.d)) cross += p.n; if (p.n >= 2) strong++;
+    const t = buf[Math.min(TIERS.length, p.n) - 1], A = p.a.pos, B = p.b.pos, ca = p.a.color, cb = p.b.color;
+    t.p.push(A.x, A.y, A.z, B.x, B.y, B.z); t.c.push(ca.r, ca.g, ca.b, cb.r, cb.g, cb.b);
+  }
+  tierObjs.forEach((o, i) => {
+    o.geometry.dispose(); const g = new THREE.LineSegmentsGeometry();
+    if (buf[i].p.length) { g.setPositions(buf[i].p); g.setColors(buf[i].c); }
+    o.geometry = g; o.visible = buf[i].p.length > 0;
+  });
+  linesDirty = false; lastBuild = performance.now();
+  $('nTrips').textContent = total; $('nCross').textContent = cross;
+}
+
+/* ---------- 이어지는 길(이동 애니메이션) ----------
+   내 별에서 상대 별까지 곧은 선이 뻗어 나가며 이어지고, 선 끝에 작은 빛이 앞장섭니다. */
+const comets = [];
+const growMat = new THREE.LineMaterial({ linewidth: 2.4, vertexColors: true, transparent: true, opacity: 0.95, depthWrite: false });
+growMat.blending = THREE.AdditiveBlending; growMat.resolution.set(innerWidth, innerHeight);
+const growObj = new THREE.LineSegments2(new THREE.LineSegmentsGeometry(), growMat); growObj.frustumCulled = false; growObj.visible = false; scene.add(growObj);
+addEventListener('resize', () => growMat.resolution.set(innerWidth, innerHeight));
+function launch(seg, dur, delay) {
+  const head = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+  head.material.color.copy(seg.a.color); head.scale.set(2.6, 2.6, 1); head.visible = false; scene.add(head);
+  comets.push({ seg, head, t0: performance.now() + (delay || 0), dur: dur || 1400 });
+}
+const easeOut = x => 1 - Math.pow(1 - x, 2.2);
+function stepComets(now) {
+  const P = [], C = [];
+  for (let i = comets.length - 1; i >= 0; i--) {
+    const c = comets[i]; const p = (now - c.t0) / c.dur;
+    if (p < 0) continue;
+    if (p >= 1) {
+      scene.remove(c.head); c.head.material.dispose();
+      shown.set(c.seg.key, c.seg); c.seg.b.pulse = 1; linesDirty = true; comets.splice(i, 1); continue;
+    }
+    const A = c.seg.a.pos, tip = new THREE.Vector3().lerpVectors(A, c.seg.b.pos, easeOut(p));
+    c.head.visible = true; c.head.position.copy(tip);
+    const ca = c.seg.a.color, cb = c.seg.b.color, k = easeOut(p);
+    P.push(A.x, A.y, A.z, tip.x, tip.y, tip.z);
+    C.push(ca.r, ca.g, ca.b, ca.r + (cb.r - ca.r) * k, ca.g + (cb.g - ca.g) * k, ca.b + (cb.b - ca.b) * k);
+  }
+  if (!P.length && !growObj.visible) return;
+  growObj.geometry.dispose(); const g = new THREE.LineSegmentsGeometry();
+  if (P.length) { g.setPositions(P); g.setColors(C); }
+  growObj.geometry = g; growObj.visible = P.length > 0;
+}
+
+/* ---------- 데이터 반영 ---------- */
+let loaded = false, replaying = false;
+const pending = new Set();
+function apply(docs) {
+  const ids = new Set();
+  for (const [id, d] of docs) {
+    ids.add(id);
+    const s = stars.get(id);
+    if (s) updateStar(s, d); else makeStar(id, d, loaded);
+  }
+  for (const [id, s] of [...stars]) if (!ids.has(id)) { scene.remove(s.grp); if (s.label) scene.remove(s.label); stars.delete(id); }
+  cardOwner = new Map();
+  for (const s of stars.values()) for (const k of (s.d.cards || [])) cardOwner.set(k, s.id);
+  $('nStars').textContent = stars.size; $('empty').hidden = stars.size > 0;
+  renderLegend();
+  if (replaying) return;
+  const want = wantedVisits(); const wantKeys = new Set(want.map(w => w.key));
+  for (const k of [...shown.keys()]) if (!wantKeys.has(k)) shown.delete(k);
+  let n = 0;
+  for (const w of want) {
+    if (shown.has(w.key) || pending.has(w.key)) continue;
+    if (loaded) { pending.add(w.key); launch(w, comets.length > 40 ? 700 : 1500, (n++) * 120); setTimeout(() => pending.delete(w.key), 4000); }
+    else shown.set(w.key, w);
+  }
+  linesDirty = true; loaded = true;
+}
+function renderLegend() {
+  const cnt = {}; for (const s of stars.values()) cnt[s.d.lens || ''] = (cnt[s.d.lens || ''] || 0) + 1;
+  $('legend').replaceChildren(...LENSES.map(l => { const d = document.createElement('div'); const i = document.createElement('i'); i.style.background = l.c; i.style.color = l.c; const em = document.createElement('em'); em.textContent = cnt[l.k] || 0; d.append(i, `${l.e} ${l.t}`, em); return d; }));
+}
+
+/* 다시 보기: 모든 길을 지우고, 별마다 들른 순서대로 동시에 다시 그립니다 */
+function replay() {
+  if (replaying) return;
+  const want = wantedVisits(); if (!want.length) { feed('아직 그려진 길이 없어요'); return; }
+  replaying = true; $('replayBtn').disabled = true; shown.clear(); linesDirty = true;
+  const maxStep = Math.max(...want.map(w => w.step)) + 1;
+  const total = Math.min(32000, Math.max(9000, maxStep * 900)), dt = total / maxStep;
+  for (const w of want) launch(w, Math.max(900, dt * 1.5), w.step * dt + Math.random() * dt * 0.4);
+  controls.autoRotateSpeed = 1.4;
+  setTimeout(() => { replaying = false; $('replayBtn').disabled = false; controls.autoRotateSpeed = 0.45; feed(`🌌 ${stars.size}개의 별이 ${shown.size}번 오가며 연결되었습니다`); }, total + dt * 2 + 600);
+}
+
+/* ---------- 루프 ---------- */
+function frame(now) {
+  requestAnimationFrame(frame);
+  for (const s of stars.values()) {
+    if (s.pos.distanceToSquared(s.to) > 0.0004) { s.pos.lerp(s.to, 0.04); linesDirty = true; }
+    s.grp.position.copy(s.pos);
+    const age = (now - s.born) / 1000;
+    const birth = age < 1.6 ? 1 + Math.sin(Math.min(1, age / 1.6) * Math.PI) * 2.2 : 1;
+    const grow = age < 1.6 ? Math.min(1, age / 0.5) : 1;
+    const tw = 1 + Math.sin(now / 700 + s.tw) * 0.12 + s.pulse * 0.9;
+    s.pulse *= 0.94;
+    const k = grow * birth * tw;
+    s.core.scale.set(1.5 * k, 1.5 * k, 1); s.halo.scale.set(5.2 * k, 5.2 * k, 1);
+    if (s.label) { s.label.position.set(s.pos.x, s.pos.y + 2.6, s.pos.z); s.label.visible = showNames && grow >= 1; }
+  }
+  stepComets(now);
+  if (linesDirty && now - lastBuild > 80) rebuildLines();
+  controls.update();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+
+/* ---------- 버튼 ---------- */
+$('replayBtn').onclick = replay;
+$('namesBtn').onclick = () => { showNames = !showNames; $('namesBtn').setAttribute('aria-pressed', showNames); };
+$('rotateBtn').onclick = () => { controls.autoRotate = !controls.autoRotate; $('rotateBtn').setAttribute('aria-pressed', controls.autoRotate); };
+function full() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {}); }
+$('fullBtn').onclick = full;
+addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea')) return;
+  if (e.key === 'f' || e.key === 'F') full();
+  if (e.key === ' ') { e.preventDefault(); replay(); }
+});
+
+/* ---------- 데이터 연결 ---------- */
+let auth = null, db = null;
+async function connectLive() {
+  const V = '10.12.2';
+  await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-app-compat.js`);
+  await Promise.all([loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-firestore-compat.js`), loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-auth-compat.js`)]);
+  firebase.initializeApp(CFG); db = firebase.firestore(); auth = firebase.auth();
+  /* 우주는 발표자만 볼 수 있습니다. 연수생에게는 '모두의 화면에 띄우기'를 눌렀을 때만 보입니다. */
+  let unsub = null;
+  auth.onAuthStateChanged(u => {
+    const on = !!u && u.email === window.PRESENTER_EMAIL; setAdmin(on);
+    if (on && !unsub) { $('empty').innerHTML = '아직 우주가 조용합니다.<br>연수 사이트에서 <b>⭐ 내 별 띄우기</b>를 하면 이곳에 별이 떠요.'; unsub = db.collection('universe').onSnapshot(snap => apply(snap.docs.map(d => [d.id, d.data()])), () => banner('우주를 불러오지 못했습니다. 새로고침해 주세요.')); }
+    if (!on) {
+      if (unsub) { unsub(); unsub = null; apply([]); }
+      $('empty').innerHTML = '이 화면은 <b>발표자만</b> 열 수 있어요.<br>오른쪽 아래 <b>관리</b>에서 발표자 비밀번호로 로그인해 주세요.';
+      $('adminModal').hidden = false; setTimeout(() => $('adminPw').focus(), 30);
+    }
+  });
+}
+
+/* 체험판: 예시 별 150개가 차례로 뜨고 길을 오갑니다 (?demo, ?fast) */
+function startDemo() {
+  banner('체험판입니다. 예시 선생님 별로 움직임을 보여 줍니다.');
+  setTimeout(() => banner(''), 5000);
+  const fams = '김이박최정강조윤장임한오서신권황안송류홍', given = ['민지', '서연', '지훈', '현우', '수빈', '예린', '도윤', '하은', '준서', '유나', '지민', '태희', '승현', '다은', '경민', '소영', '재원', '나연', '우진', '혜린'];
+  const rnd = hash('demo'); const all = [];
+  for (let g = 1; g <= GROUPS; g++) for (let i = 0; i < 10; i++) {
+    const id = 'd' + g + '_' + i;
+    all.push({ id, d: { name: fams[Math.floor(rnd() * fams.length)] + given[Math.floor(rnd() * given.length)], group: g, lens: LENSES[Math.floor(rnd() * 6)].k, cards: [g + '_c' + i], path: [] }, plan: [] });
+  }
+  for (const a of all) {
+    const g = a.d.group; const n = 6 + Math.floor(rnd() * 9);
+    for (let k = 0; k < n; k++) {
+      const og = rnd() < 0.04 ? 1 + Math.floor(rnd() * GROUPS) : g; const i = Math.floor(rnd() * 10);
+      a.plan.push(og + '_c' + i);
+    }
+  }
+  const local = () => { try { return Object.entries(JSON.parse(localStorage.getItem('uni-demo') || '{}')); } catch (e) { return []; } };
+  const emit = () => apply([...all.filter(a => a.on).map(a => [a.id, { ...a.d, path: a.d.path.slice() }]), ...local()]);
+  if (params.has('fast')) { all.forEach(a => { a.on = true; a.d.path = a.plan.slice(); }); emit(); return; }
+  let i = 0;
+  const appear = setInterval(() => { if (i >= all.length) { clearInterval(appear); return; } all[i++].on = true; emit(); }, 120);
+  setTimeout(() => setInterval(() => {
+    const on = all.filter(a => a.on && a.d.path.length < a.plan.length); if (!on.length) return;
+    const a = on[Math.floor(Math.random() * on.length)]; a.d.path.push(a.plan[a.d.path.length]); emit();
+  }, 160), 4000);
+  addEventListener('storage', e => { if (e.key === 'uni-demo') emit(); });
+}
+
+/* ---------- 관리(발표자) ---------- */
+let isAdmin = false;
+function setAdmin(on) {
+  isAdmin = on; if (on) $('adminModal').hidden = true; $('loginPart').hidden = on; $('adminGo').hidden = on; $('clearBtn').hidden = !on;
+  $('adminInfo').textContent = on ? '발표자로 로그인되어 있습니다. 리허설 기록을 지우려면 아래 버튼을 두 번 누르세요. 지운 별은 되돌릴 수 없습니다.' : '발표자 비밀번호(숫자 8자리)로 로그인하면 리허설 기록을 지우고 우주를 비울 수 있습니다.';
+}
+$('adminBtn').onclick = () => { $('adminModal').hidden = false; $('adminErr').textContent = ''; if (!isAdmin) setTimeout(() => $('adminPw').focus(), 30); };
+$('adminClose').onclick = () => { $('adminModal').hidden = true; };
+$('adminForm').onsubmit = async e => {
+  e.preventDefault();
+  if (DEMO) { if ($('adminPw').value === 'demo') setAdmin(true); else $('adminErr').textContent = '체험판 비밀번호는 demo 입니다.'; return; }
+  try { await auth.signInWithEmailAndPassword(window.PRESENTER_EMAIL, $('adminPw').value); $('adminPw').value = ''; }
+  catch (err) { $('adminErr').textContent = '비밀번호가 맞지 않습니다.'; }
+};
+$('clearBtn').onclick = async () => {
+  const b = $('clearBtn');
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = '한 번 더 누르면 모든 별이 지워집니다'; setTimeout(() => { delete b.dataset.armed; b.textContent = '우주 비우기'; }, 4000); return; }
+  b.disabled = true;
+  try {
+    if (DEMO) { try { localStorage.removeItem('uni-demo'); } catch (e) {} location.reload(); return; }
+    const snap = await db.collection('universe').get();
+    for (let i = 0; i < snap.docs.length; i += 400) { const batch = db.batch(); snap.docs.slice(i, i + 400).forEach(d => batch.delete(d.ref)); await batch.commit(); }
+    $('adminErr').textContent = ''; feed('우주를 비웠습니다');
+    $('adminModal').hidden = true;
+  } catch (err) { $('adminErr').textContent = '지우지 못했습니다. 다시 로그인해 주세요.'; }
+  b.disabled = false; delete b.dataset.armed; b.textContent = '우주 비우기';
+};
+
+/* ---------- 모두의 화면에 띄우기 ----------
+   발표자가 누르면 지금 우주를 작은 요약본(문서 1개)으로 저장하고, 연수 사이트에 신호를 보냅니다.
+   참가자 화면은 요약본을 한 번만 읽어(1명당 읽기 1회) 같은 우주를 띄우고 여정을 재생합니다. */
+const SNAP = params.has('snap');
+let sharing = false;
+function makeSnapshot() {
+  const list = [...stars.values()], idx = new Map(list.map((s, i) => [s.id, i]));
+  return { v: 1, stars: list.map(s => [s.d.name || '', s.d.group || 0, s.d.lens || '']),
+    visits: list.map(s => (s.d.path || []).map(k => { const o = cardOwner.get(k); return o && o !== s.id && idx.has(o) ? idx.get(o) : -1; }).filter(j => j >= 0)) };
+}
+function applySnapshot(snap) {
+  apply(snap.stars.map(([name, group, lens], i) => ['s' + i, { name, group, lens, cards: ['k' + i], path: (snap.visits[i] || []).map(j => 'k' + j) }]));
+}
+function renderShare() { $('shareBtn').textContent = sharing ? '📡 모두의 화면에서 닫기' : '📡 모두의 화면에 띄우기'; }
+$('shareBtn').onclick = async () => {
+  if (!isAdmin) { $('adminBtn').onclick(); $('adminErr').textContent = '모두의 화면에 띄우려면 먼저 발표자로 로그인해 주세요.'; return; }
+  const b = $('shareBtn'); b.disabled = true;
+  try {
+    if (!sharing) {
+      const data = JSON.stringify(makeSnapshot()), show = Date.now();
+      if (DEMO) {
+        try { localStorage.setItem('uni-snap', data); const K = 'live-demo-v1'; const d = JSON.parse(localStorage.getItem(K) || 'null') || { state: { slide: 1, recall: 0, lock: false, chatPaused: false }, chat: [] }; Object.assign(d.state, { uniShow: show, uniOpen: true }); localStorage.setItem(K, JSON.stringify(d)); } catch (e) {}
+      } else {
+        await db.collection('live').doc('universe').set({ data, at: firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection('live').doc('state').set({ uniShow: show, uniOpen: true }, { merge: true });
+      }
+      sharing = true; feed('📡 연수생 화면에 우주를 띄웠습니다'); replay();
+    } else {
+      if (DEMO) { try { const K = 'live-demo-v1'; const d = JSON.parse(localStorage.getItem(K) || 'null'); if (d) { d.state.uniOpen = false; localStorage.setItem(K, JSON.stringify(d)); } } catch (e) {} }
+      else await db.collection('live').doc('state').set({ uniOpen: false }, { merge: true });
+      sharing = false; feed('연수생 화면의 우주를 닫았습니다');
+    }
+  } catch (e) { banner('연수생 화면에 보내지 못했습니다. 발표자로 다시 로그인해 주세요.'); }
+  b.disabled = false; renderShare();
+};
+
+async function startSnap() {
+  $('adminBtn').hidden = true; $('shareBtn').hidden = true;
+  let snap = null;
+  try {
+    if (DEMO) snap = JSON.parse(localStorage.getItem('uni-snap') || 'null');
+    else {
+      const V = '10.12.2';
+      await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-app-compat.js`);
+      await loadScript(`https://cdn.jsdelivr.net/npm/firebase@${V}/firebase-firestore-compat.js`);
+      firebase.initializeApp(CFG);
+      const doc = await firebase.firestore().collection('live').doc('universe').get();
+      if (doc.exists) snap = JSON.parse(doc.data().data);
+    }
+  } catch (e) {}
+  if (!snap) { banner('우주를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.'); return; }
+  applySnapshot(snap);
+  setTimeout(replay, 1200);
+}
+
+renderLegend();
+if (SNAP) startSnap();
+else if (DEMO) startDemo();
+else connectLive().catch(() => banner('실시간 서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.'));
+</script>
+</body>
+</html>
