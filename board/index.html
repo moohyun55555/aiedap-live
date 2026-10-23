@@ -136,6 +136,20 @@ textarea:focus{background:var(--surface)}
   .share-grid,.picked-groups{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:560px){.lens-grid{grid-template-columns:minmax(0,1fr)}}
+.lens-fab{position:fixed;right:20px;bottom:20px;z-index:9;display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:0 20px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;font-size:15px;box-shadow:0 8px 24px rgba(120,50,20,.35);cursor:pointer}
+.lens-fab:hover{filter:brightness(1.07)}
+.lens-fab:focus-visible{outline:3px solid var(--accent-soft);outline-offset:3px}
+body{padding-bottom:84px}
+.lens-guide{width:min(760px,100%);max-height:calc(100dvh - 32px);overflow:auto}
+.lens-guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lens-guide-item{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface-2)}
+.lens-guide-item h3{margin:0 0 6px;font-size:16px}
+.lens-guide-item .q{margin:0 0 8px;font-size:14px;line-height:1.5;color:var(--fg)}
+.lens-guide-item ul{margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:var(--muted)}
+.lens-guide-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.lens-rule{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:14px;line-height:1.5}
+.lens-rule b{color:var(--accent)}
+@media (max-width:560px){.lens-guide-grid{grid-template-columns:minmax(0,1fr)}.lens-fab{right:12px;bottom:12px;font-size:14px;padding:0 16px}}
 @media (prefers-reduced-motion:no-preference){.tcard,.btn,.add-btn{transition:background .15s,border-color .15s}}
 </style>
 
@@ -162,6 +176,16 @@ textarea:focus{background:var(--surface)}
     </div>
     <div class="export-msg" id="exportMsg" role="status"></div>
   </section>
+</div>
+
+<button type="button" class="lens-fab" id="lensFab" aria-haspopup="dialog">🔍 6가지 렌즈가 뭐였더라?</button>
+
+<div class="modal" id="lensModal" hidden>
+  <div class="modal-box lens-guide" role="dialog" aria-modal="true" aria-labelledby="lensTitle">
+    <div class="lens-guide-head"><h2 id="lensTitle">6가지 렌즈, 다시 보기</h2><button type="button" class="btn ghost" id="lensClose">닫기</button></div>
+    <p class="muted" style="margin:0;font-size:14px">렌즈마다 던지는 질문과 살펴볼 점입니다. 피드백할 때는 이 중 <b>1개만</b> 골라 주세요.</p>
+    <div class="lens-guide-grid" id="lensGuide"></div>
+  </div>
 </div>
 
 <div class="modal" id="adminModal" hidden>
@@ -222,12 +246,12 @@ const PEER = [
   { k: 'more', t: '더 알고 싶은 점', d: '궁금하거나 질문할 점' }
 ];
 const LENS = [
-  { k: 'edu', e: '🎯', t: '교육적 관점', q: 'AI 활용이 학습목표 달성에 실제로 도움이 되었는가?' },
-  { k: 'learner', e: '👦', t: '학습자 관점', q: '학생이 스스로 생각하고 선택하고 판단할 기회가 충분했는가?' },
-  { k: 'tech', e: '💻', t: '기술적 관점', q: '활용한 AI·디지털 기술이 수업 목적과 학생 수준에 적절했는가?' },
-  { k: 'eval', e: '📋', t: '평가 관점', q: '학생의 결과뿐 아니라 사고 및 AI 활용 과정을 충분히 평가할 수 있었는가?' },
-  { k: 'ethics', e: '🛡️', t: '윤리적 관점', q: '오류·편향·개인정보·저작권·AI 의존 등 고려하지 못한 문제는 없었는가?' },
-  { k: 'exec', e: '🏫', t: '실행 관점', q: '실제 교실의 시간, 기기, 학생 수준, 접근성 등을 고려할 때 실행 가능한 설계였는가?' }
+  { k: 'edu', e: '🎯', t: '교육적 관점', q: 'AI 활용이 학습목표 달성에 실제로 도움이 되었는가?', p: ['성취기준과 AI 활동의 연결', '교과 고유의 사고 방식이 구현된 장면'] },
+  { k: 'learner', e: '👦', t: '학습자 관점', q: '학생이 스스로 생각하고 선택하고 판단할 기회가 충분했는가?', p: ['학생의 판단이 필요한 지점', 'AI 결과를 검토하거나 수정한 흔적'] },
+  { k: 'tech', e: '💻', t: '기술적 관점', q: '활용한 AI·디지털 기술이 수업 목적과 학생 수준에 적절했는가?', p: ['도구를 고른 이유', '학생이 다루기에 적절한 수준이었는지'] },
+  { k: 'eval', e: '📋', t: '평가 관점', q: '학생의 결과뿐 아니라 사고 및 AI 활용 과정을 충분히 평가할 수 있었는가?', p: ['수집한 학습 증거의 종류', '과정을 남기는 방법'] },
+  { k: 'ethics', e: '🛡️', t: '윤리적 관점', q: '오류·편향·개인정보·저작권·AI 의존 등 고려하지 못한 문제는 없었는가?', p: ['오류·편향·저작권·개인정보 안내', '문제가 생겼을 때의 대응'] },
+  { k: 'exec', e: '🏫', t: '실행 관점', q: '실제 교실의 시간, 기기, 학생 수준, 접근성 등을 고려할 때 실행 가능한 설계였는가?', p: ['계획과 실제 걸린 차시의 차이', '다른 교실에서 재현할 때 필요한 조건'] }
 ];
 const TYPE_LABEL = Object.fromEntries([...PEER.map(p => [p.k, p.t]), ...LENS.map(l => [l.k, l.e + ' ' + l.t])]);
 
@@ -470,6 +494,7 @@ function composer(type, onDone) {
   const ta = h('textarea', { id, placeholder: '내용을 입력하세요', maxlength: '1000', 'aria-label': (TYPE_LABEL[type] || '') + ' 입력' });
   const go = h('button', { type: 'button', class: 'btn', text: '등록', onclick: async () => {
     const text = ta.value.trim(); if (!text) { ta.focus(); return; }
+    if (LENS_KEYS.has(type) && myLensFb()) { showBanner('렌즈 피드백은 1개만 남길 수 있어요. 다른 렌즈로 바꾸려면 남긴 피드백을 먼저 삭제해 주세요.'); syncLensUI(); return; }
     go.disabled = true;
     try { await S.store.addFeedback(S.current, { type, text, anon: ANON }); ta.value = ''; onDone && onDone(); refreshFb && refreshFb(); }
     catch (e) { showBanner('등록하지 못했습니다. 인터넷 연결을 확인해 주세요.'); }
@@ -477,6 +502,33 @@ function composer(type, onDone) {
   } });
   return { el: h('div', { class: 'composer' }, ta, h('div', { class: 'row' }, go)), ta };
 }
+
+let lensUI = [];
+const LENS_KEYS = new Set(LENS.map(l => l.k));
+function myLensFb() { return S.feedback.find(f => LENS_KEYS.has(f.type) && f.anon && f.anon === ANON) || null; }
+function syncLensUI() {
+  const mine = myLensFb(); const own = isOwner();
+  const writing = lensUI.some(u => !u.c.el.hidden);
+  for (const u of lensUI) {
+    if (mine) { u.c.el.hidden = true; u.add.hidden = true; }
+    else u.add.hidden = writing;
+  }
+  const r = $('lensRule'); if (!r) return;
+  if (mine) {
+    const l = LENS.find(x => x.k === mine.type);
+    r.replaceChildren('✅ ', h('b', { text: l.e + ' ' + l.t }), (own ? '(으)로 내 수업을 돌아봤어요.' : '(으)로 피드백을 남겼어요.') + ' 렌즈는 1개만 고를 수 있어요. 다른 렌즈로 바꾸려면 남긴 피드백을 삭제한 뒤 다시 골라 주세요.');
+  } else {
+    r.replaceChildren('☝️ 6가지 렌즈 중 ', h('b', { text: '딱 1개' }), own ? '를 골라 내 수업을 돌아봐 주세요.' : '를 골라 이 수업에 피드백을 남겨 주세요.');
+  }
+}
+function openLensGuide() {
+  $('lensGuide').replaceChildren(...LENS.map((l, i) => h('div', { class: 'lens-guide-item' },
+    h('h3', { text: `${l.e} 렌즈 ${i + 1} · ${l.t}` }),
+    h('p', { class: 'q', text: '“' + l.q + '”' }),
+    h('ul', null, l.p.map(t => h('li', { text: t }))))));
+  $('lensModal').hidden = false; $('lensClose').focus();
+}
+function closeLensGuide() { $('lensModal').hidden = true; $('lensFab').focus(); }
 
 function buildPage() {
   for (const k of Object.keys(refs)) delete refs[k];
@@ -514,22 +566,28 @@ function buildPage() {
     h('div', { class: 'panel-title' }, h('h3', { text: '동료 피드백' }), h('p', null, '피드백은 이름 없이 익명으로 남습니다. 편하게 의견을 나눠 주세요. ', own ? null : h('button', { type: 'button', class: 'link-btn', text: '↻ 새로 불러오기', onclick: () => refreshFb && refreshFb() }))),
     h('div', { class: 'peer-grid' }, peerCols));
 
+  lensUI = [];
   const lensCards = LENS.map(l => {
     const list = h('ul', { class: 'list', id: 'list-' + l.k });
     const card = h('div', { class: 'col lens' }, h('h4', { text: l.e + ' ' + l.t }), h('p', { class: 'lens-q', text: '“' + l.q + '”' }), list);
-    if (!own) {
-      const c = composer(l.k, () => { c.el.hidden = true; add.hidden = false; });
-      c.el.hidden = true;
-      const cancel = h('button', { type: 'button', class: 'btn ghost', text: '취소', onclick: () => { c.el.hidden = true; add.hidden = false; } });
-      c.el.querySelector('.row').append(cancel);
-      const add = h('button', { type: 'button', class: 'add-btn', text: '+ 피드백 남기기', onclick: () => { add.hidden = true; c.el.hidden = false; c.ta.focus(); } });
-      card.append(add, c.el);
-    }
+    const c = composer(l.k, () => { c.el.hidden = true; syncLensUI(); });
+    c.el.hidden = true;
+    const cancel = h('button', { type: 'button', class: 'btn ghost', text: '취소', onclick: () => { c.el.hidden = true; syncLensUI(); } });
+    c.el.querySelector('.row').append(cancel);
+    const add = h('button', { type: 'button', class: 'add-btn', text: own ? '+ 이 렌즈로 내 수업 돌아보기' : '+ 이 렌즈로 피드백 남기기', onclick: () => {
+      if (myLensFb()) { syncLensUI(); return; }
+      for (const u of lensUI) u.c.el.hidden = true;
+      c.el.hidden = false; syncLensUI(); c.ta.focus();
+    } });
+    lensUI.push({ add, c });
+    card.append(add, c.el);
     return card;
   });
   const lens = h('section', { class: 'panel', 'aria-label': '관점별 피드백' },
     h('div', { class: 'panel-title' }, h('h3', { text: '관점별 피드백' }),
-      h('p', { text: own ? '도움이 된 피드백에 체크하면 아래 모아보기에 정리됩니다.' : '수업자가 체크한 피드백은 표시가 됩니다.' })),
+      h('p', null, own ? '도움이 된 피드백에 체크하면 아래 모아보기에 정리됩니다. ' : '수업자가 체크한 피드백은 표시가 됩니다. ',
+        h('button', { type: 'button', class: 'link-btn', text: '6가지 렌즈가 뭐였더라?', onclick: openLensGuide }))),
+    h('p', { class: 'lens-rule', id: 'lensRule' }),
     h('div', { class: 'lens-grid' }, lensCards));
 
   const picked = h('section', { class: 'panel', 'aria-label': '체크한 피드백 모아보기' },
@@ -579,6 +637,7 @@ function renderFeedback() {
     const items = S.feedback.filter(f => f.type === l.k);
     ul.replaceChildren(...(items.length ? items.map(f => itemEl(f, true)) : [h('li', { class: 'empty-list', text: '아직 피드백이 없습니다.' })]));
   }
+  syncLensUI();
   const box = $('picked'); if (!box) return;
   const groups = LENS.map(l => ({ l, items: S.feedback.filter(f => f.type === l.k && f.checked) })).filter(g => g.items.length);
   const n = groups.reduce((a, g) => a + g.items.length, 0);
@@ -774,6 +833,10 @@ $('adminBtn').addEventListener('click', () => {
   $('adminModal').hidden = false; $('adminErr').textContent = ''; $('adminPw').value = ''; setTimeout(() => $('adminPw').focus(), 30);
 });
 $('adminCancel').addEventListener('click', () => { $('adminModal').hidden = true; });
+$('lensFab').addEventListener('click', openLensGuide);
+$('lensClose').addEventListener('click', closeLensGuide);
+$('lensModal').addEventListener('click', e => { if (e.target === $('lensModal')) closeLensGuide(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('lensModal').hidden) closeLensGuide(); });
 $('adminForm').addEventListener('submit', async e => {
   e.preventDefault();
   try { await S.store.adminLogin($('adminPw').value); $('adminModal').hidden = true; }
