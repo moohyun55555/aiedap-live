@@ -118,7 +118,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 $('stage').append(renderer.domElement);
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x04050D, 0.0022);
+scene.fog = new THREE.FogExp2(0x04050D, 0.0014);
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 3000);
 camera.position.set(0, 52, 150);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -160,20 +160,8 @@ function labelSprite(text, px, color, opacity) {
 /* 실제로 별이 있는 모둠만 골라 고르게 배치합니다. 당일 모둠이 6개든 15개든 우주가 한쪽으로 쏠리지 않습니다. */
 const layout = new Map(); let layoutKey = '', layoutR = 60;
 function galaxyCenter(g) { return (layout.get(g) || new THREE.Vector3(0, 0, 0)).clone(); }
-function relayout(groupList) {
-  const act = [...new Set(groupList.filter(g => g))].sort((a, b) => a - b);
-  const key = act.join(','); if (key === layoutKey) return;
-  layoutKey = key; layout.clear();
-  const n = act.length; layoutR = n <= 1 ? 0 : 18 + 12 * Math.sqrt(n);
-  act.forEach((g, i) => {
-    if (n === 1) { layout.set(g, new THREE.Vector3(0, 0, 0)); return; }
-    const y = 1 - (i + 0.5) / n * 2, r = Math.sqrt(1 - y * y), phi = i * 2.399963;
-    layout.set(g, new THREE.Vector3(Math.cos(phi) * r * layoutR, y * layoutR * 0.75, Math.sin(phi) * r * layoutR));
-  });
-  layout.set(0, n >= 2 ? new THREE.Vector3(0, 0, 0) : new THREE.Vector3(0, -36, 0));
-  for (const [g, gal] of Object.entries(galaxies)) { const c = galaxyCenter(+g); gal.c = c; gal.neb.position.copy(c); gal.lab.position.copy(c).add(new THREE.Vector3(0, 17, 0)); }
-  for (const st of stars.values()) { st.to = starTarget(st.id, homeOf(st.d)); if (!loaded) st.pos.copy(st.to); }
-  if (!loaded) camera.position.setLength(Math.max(90, layoutR * 1.6 + 70));
+function relayout() {
+  if (!loaded && !relayout.done) { relayout.done = true; camera.position.setLength(238); }
 }
 const galaxies = {};
 function ensureGalaxy(g) {
@@ -193,11 +181,11 @@ const stars = new Map();      // anon → star
 let cardOwner = new Map();    // "모둠_카드id" → anon
 let showNames = true;
 function homeOf(d) { return d.group || 0; }
-function starTarget(id, g) {
-  /* 모둠 안의 별은 작은 공 모양으로 퍼뜨려, 어느 방향에서 봐도 모둠원 사이 연결망이 보이게 합니다 */
-  const gal = ensureGalaxy(g), rnd = hash(id);
-  const r = 7 + Math.cbrt(rnd()) * 10, th = rnd() * Math.PI * 2, ph = Math.acos(2 * rnd() - 1);
-  return new THREE.Vector3(r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph) * 0.8, r * Math.sin(ph) * Math.sin(th)).add(gal.c);
+function starTarget(id) {
+  /* 모둠과 상관없이 우주 전체에 별을 흩뿌립니다. 같은 모둠끼리 오간 길도 우주를 가로지르며 이어져 그물처럼 보입니다. */
+  const rnd = hash(id), R0 = 125;
+  const r = R0 * (0.45 + 0.55 * Math.cbrt(rnd())), th = rnd() * Math.PI * 2, ph = Math.acos(2 * rnd() - 1);
+  return new THREE.Vector3(r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph) * 0.8, r * Math.sin(ph) * Math.sin(th));
 }
 function makeStar(id, d, animate) {
   const color = new THREE.Color(lensColor(d.lens));
@@ -224,7 +212,7 @@ function updateStar(s, d) {
 }
 
 /* ---------- 길(선): 내 별 ↔ 들른 선생님 별. 여러 번 오갈수록 굵고 밝아집니다 ---------- */
-const TIERS = [{ w: 1.4, o: 0.42 }, { w: 2.8, o: 0.62 }, { w: 4.2, o: 0.8 }, { w: 6, o: 0.95 }];
+const TIERS = [{ w: 1.1, o: 0.3 }, { w: 2.1, o: 0.46 }, { w: 3.2, o: 0.62 }, { w: 4.6, o: 0.8 }];
 const tierObjs = TIERS.map(t => {
   const m = new THREE.LineMaterial({ linewidth: t.w, vertexColors: true, transparent: true, opacity: t.o, depthWrite: false });
   m.blending = THREE.AdditiveBlending; m.resolution.set(innerWidth, innerHeight);
@@ -278,7 +266,7 @@ function launch(seg, dur, delay) {
   head.material.color.copy(seg.a.color); head.scale.set(2.6, 2.6, 1); head.visible = false; scene.add(head);
   comets.push({ seg, head, t0: performance.now() + (delay || 0), dur: dur || 1400 });
 }
-const easeOut = x => 1 - Math.pow(1 - x, 2.2);
+const easeOut = x => 0.5 - Math.cos(Math.PI * x) / 2;   // 천천히 출발해 부드럽게 도착
 function stepComets(now) {
   const P = [], C = [];
   for (let i = comets.length - 1; i >= 0; i--) {
@@ -322,7 +310,7 @@ function apply(docs) {
   let n = 0;
   for (const w of want) {
     if (shown.has(w.key) || pending.has(w.key)) continue;
-    if (loaded) { pending.add(w.key); launch(w, comets.length > 40 ? 700 : 1500, (n++) * 120); setTimeout(() => pending.delete(w.key), 4000); }
+    if (loaded) { pending.add(w.key); launch(w, comets.length > 40 ? 3400 : 4600, (n++) * 400); setTimeout(() => pending.delete(w.key), 12000); }
     else shown.set(w.key, w);
   }
   linesDirty = true; loaded = true;
@@ -338,10 +326,10 @@ function replay() {
   const want = wantedVisits(); if (!want.length) { feed('아직 그려진 길이 없어요'); return; }
   replaying = true; $('replayBtn').disabled = true; shown.clear(); linesDirty = true;
   const maxStep = Math.max(...want.map(w => w.step)) + 1;
-  const total = Math.min(32000, Math.max(9000, maxStep * 900)), dt = total / maxStep;
-  for (const w of want) launch(w, Math.max(900, dt * 1.5), w.step * dt + Math.random() * dt * 0.4);
-  controls.autoRotateSpeed = 1.4;
-  setTimeout(() => { replaying = false; $('replayBtn').disabled = false; controls.autoRotateSpeed = 0.45; feed(`🌌 ${stars.size}개의 별이 ${shown.size}번 오가며 연결되었습니다`); }, total + dt * 2 + 600);
+  const total = Math.min(80000, Math.max(34000, maxStep * 3500)), dt = total / maxStep;
+  for (const w of want) launch(w, Math.max(4800, dt * 2.6), w.step * dt + Math.random() * dt * 0.8);
+  controls.autoRotateSpeed = 0.8;
+  setTimeout(() => { replaying = false; $('replayBtn').disabled = false; controls.autoRotateSpeed = 0.45; feed(`🌌 ${stars.size}개의 별이 ${shown.size}번 오가며 연결되었습니다`); }, total + Math.max(4800, dt * 2.6) + dt + 800);
 }
 
 /* ---------- 루프 ---------- */
