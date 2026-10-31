@@ -371,11 +371,11 @@ async function firebaseStore() {
     watchState(cb, err) { return stateRef.onSnapshot(s => cb(s.exists ? s.data() : {}), err); },
     setState: p => stateRef.set(p, { merge: true }),
     /* 채팅 읽기 절약: 연수생은 '채팅 요약본' 문서 하나만 실시간으로 받습니다.
-       발표자 화면이 원본 채팅을 받아 2.5초마다 최근 30개를 요약본에 묶어 올립니다.
+       발표자 화면이 원본 채팅을 받아 2초마다 최근 30개를 요약본에 묶어 올립니다.
        그래서 메시지가 몇 개든 연수생 읽기는 '요약본이 바뀐 횟수 × 인원'으로 묶입니다. */
     watchChat(cb, err) {
       chatCb = cb; chatErr = err;
-      /* 안전장치: 요약본이 없거나 12분 넘게 갱신되지 않았으면(발표자 화면이 꺼진 경우 등) 예전처럼 채팅을 직접 받습니다. */
+      /* 안전장치: 요약본이 없거나 25분 넘게 갱신되지 않았으면(발표자 화면이 꺼진 경우 등) 예전처럼 채팅을 직접 받습니다. */
       const direct = on => {
         if (on && !unsubFallback) unsubFallback = chat.orderBy('at', 'desc').limit(20).onSnapshot(s => { if (!presenterOn) cb(s.docs.map(d => { const x = d.data(); return { id: d.id, name: x.name, text: x.text, host: !!x.host, at: x.at ? x.at.toMillis() : Date.now() }; }).reverse()); }, err);
         if (!on && unsubFallback) { unsubFallback(); unsubFallback = null; }
@@ -383,7 +383,7 @@ async function firebaseStore() {
       digestRef.onSnapshot(s => {
         if (presenterOn) return;
         const d = s.exists ? s.data() : null;
-        const fresh = d && d.at && Date.now() - d.at.toMillis() < 12 * 60 * 1000;
+        const fresh = d && d.at && Date.now() - d.at.toMillis() < 25 * 60 * 1000;
         direct(!fresh);
         if (fresh) cb((d.msgs || []).map(x => ({ id: x.id, name: x.name, text: x.text, host: !!x.host, at: x.at || Date.now() })));
       }, () => direct(true));
@@ -393,9 +393,9 @@ async function firebaseStore() {
       if (on && !unsubDirect) unsubDirect = chat.orderBy('at', 'desc').limit(30).onSnapshot(s => {
         latest = s.docs.map(d => { const x = d.data(); return { id: d.id, name: x.name, text: x.text, host: !!x.host, at: x.at ? x.at.toMillis() : Date.now() }; }).reverse();
         chatCb && chatCb(latest);
-        if (!digestTimer) digestTimer = setTimeout(() => { digestTimer = null; digestRef.set({ msgs: latest, at: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {}); }, 2500);
+        if (!digestTimer) digestTimer = setTimeout(() => { digestTimer = null; digestRef.set({ msgs: latest, at: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {}); }, 2000);
       }, chatErr);
-      if (on && !beat) beat = setInterval(() => digestRef.set({ msgs: latest, at: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {}), 5 * 60 * 1000);
+      if (on && !beat) beat = setInterval(() => digestRef.set({ msgs: latest, at: firebase.firestore.FieldValue.serverTimestamp() }).catch(() => {}), 10 * 60 * 1000);
       if (!on && unsubDirect) { unsubDirect(); unsubDirect = null; }
       if (!on && beat) { clearInterval(beat); beat = null; }
     },
