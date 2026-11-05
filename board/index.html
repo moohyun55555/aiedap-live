@@ -139,7 +139,6 @@ textarea:focus{background:var(--surface)}
 .lens-fab{position:fixed;right:20px;bottom:20px;z-index:9;display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:0 20px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;font-size:15px;box-shadow:0 8px 24px rgba(120,50,20,.35);cursor:pointer}
 .lens-fab:hover{filter:brightness(1.07)}
 .lens-fab:focus-visible{outline:3px solid var(--accent-soft);outline-offset:3px}
-body{padding-bottom:84px}
 .lens-guide{width:min(760px,100%);max-height:calc(100dvh - 32px);overflow:auto}
 .lens-guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .lens-guide-item{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface-2)}
@@ -176,16 +175,6 @@ body{padding-bottom:84px}
     </div>
     <div class="export-msg" id="exportMsg" role="status"></div>
   </section>
-</div>
-
-<button type="button" class="lens-fab" id="lensFab" aria-haspopup="dialog">🔍 6가지 렌즈가 뭐였더라?</button>
-
-<div class="modal" id="lensModal" hidden>
-  <div class="modal-box lens-guide" role="dialog" aria-modal="true" aria-labelledby="lensTitle">
-    <div class="lens-guide-head"><h2 id="lensTitle">6가지 렌즈, 다시 보기</h2><button type="button" class="btn ghost" id="lensClose">닫기</button></div>
-    <p class="muted" style="margin:0;font-size:14px">렌즈마다 던지는 질문과 살펴볼 점입니다. 피드백할 때는 이 중 <b>1개만</b> 골라 주세요.</p>
-    <div class="lens-guide-grid" id="lensGuide"></div>
-  </div>
 </div>
 
 <div class="modal" id="adminModal" hidden>
@@ -569,39 +558,11 @@ function buildPage() {
     h('div', { class: 'panel-title' }, h('h3', { text: '동료 피드백' }), h('p', null, '피드백은 이름 없이 익명으로 남습니다. 편하게 의견을 나눠 주세요. ', own ? null : h('button', { type: 'button', class: 'link-btn', text: '↻ 새로 불러오기', onclick: () => refreshFb && refreshFb() }))),
     h('div', { class: 'peer-grid' }, peerCols));
 
-  lensUI = [];
-  const lensCards = LENS.map(l => {
-    const list = h('ul', { class: 'list', id: 'list-' + l.k });
-    const card = h('div', { class: 'col lens' }, h('h4', { text: l.e + ' ' + l.t }), h('p', { class: 'lens-q', text: '“' + l.q + '”' }), list);
-    const c = composer(l.k, () => { c.el.hidden = true; syncLensUI(); });
-    c.el.hidden = true;
-    const cancel = h('button', { type: 'button', class: 'btn ghost', text: '취소', onclick: () => { c.el.hidden = true; syncLensUI(); } });
-    c.el.querySelector('.row').append(cancel);
-    const add = h('button', { type: 'button', class: 'add-btn', text: own ? '+ 이 렌즈로 내 수업 돌아보기' : '+ 이 렌즈로 피드백 남기기', onclick: () => {
-      if (myLensFb()) { syncLensUI(); return; }
-      for (const u of lensUI) u.c.el.hidden = true;
-      c.el.hidden = false; syncLensUI(); c.ta.focus();
-    } });
-    lensUI.push({ add, c });
-    card.append(add, c.el);
-    return card;
-  });
-  const lens = h('section', { class: 'panel', 'aria-label': '관점별 피드백' },
-    h('div', { class: 'panel-title' }, h('h3', { text: '관점별 피드백' }),
-      h('p', null, own ? '도움이 된 피드백에 체크하면 아래 모아보기에 정리됩니다. ' : '수업자가 체크한 피드백은 표시가 됩니다. ',
-        h('button', { type: 'button', class: 'link-btn', text: '6가지 렌즈가 뭐였더라?', onclick: openLensGuide }))),
-    h('p', { class: 'lens-rule', id: 'lensRule' }),
-    h('div', { class: 'lens-grid' }, lensCards));
-
-  const picked = h('section', { class: 'panel', 'aria-label': '체크한 피드백 모아보기' },
-    h('div', { class: 'panel-title' }, h('h3', { text: '체크한 피드백 모아보기' }), h('p', { id: 'pickedCount' })),
-    h('div', { id: 'picked' }));
-
   const improve = h('section', { class: 'panel', 'aria-label': '나의 수업 개선 방향' },
     h('div', { class: 'panel-title' }, h('h3', { text: '나의 수업 개선 방향' }), h('p', { text: own ? '받은 피드백을 바탕으로 개선할 방향 3가지를 적어 주세요.' : '수업자가 정리한 개선 방향입니다.' })),
     h('div', { class: 'improve' }, [0, 1, 2].map(i => ownerField('improve', '개선 방향 ' + (i + 1), '피드백을 바탕으로 바꿔 볼 점을 적어 주세요.', i))));
 
-  main.replaceChildren(h('div', { class: 'page' }, head, share, peer, lens, picked, improve));
+  main.replaceChildren(h('div', { class: 'page' }, head, share, peer, improve));
   renderFeedback();
 }
 
@@ -635,20 +596,6 @@ function renderFeedback() {
     const items = S.feedback.filter(f => f.type === p.k);
     ul.replaceChildren(...(items.length ? items.map(f => itemEl(f, false)) : [h('li', { class: 'empty-list', text: '아직 남긴 내용이 없습니다.' })]));
   }
-  for (const l of LENS) {
-    const ul = $('list-' + l.k); if (!ul) continue;
-    const items = S.feedback.filter(f => f.type === l.k);
-    ul.replaceChildren(...(items.length ? items.map(f => itemEl(f, true)) : [h('li', { class: 'empty-list', text: '아직 피드백이 없습니다.' })]));
-  }
-  syncLensUI();
-  const box = $('picked'); if (!box) return;
-  const groups = LENS.map(l => ({ l, items: S.feedback.filter(f => f.type === l.k && f.checked) })).filter(g => g.items.length);
-  const n = groups.reduce((a, g) => a + g.items.length, 0);
-  $('pickedCount').textContent = n ? `${n}개` : '';
-  if (!n) { box.replaceChildren(h('div', { class: 'empty-list', text: isOwner() ? '관점별 피드백에서 도움이 된 내용에 체크해 보세요.' : '수업자가 아직 체크한 피드백이 없습니다.' })); return; }
-  box.replaceChildren(h('div', { class: 'picked-groups' }, groups.map(g =>
-    h('div', { class: 'picked-group' }, h('h4', { text: g.l.e + ' ' + g.l.t }),
-      h('ul', { class: 'list' }, g.items.map(f => h('li', { class: 'item' }, h('div', { class: 'body' }, h('div', { class: 'text', text: f.text })))))))));
 }
 
 /* ---------- 엑셀 ---------- */
@@ -713,15 +660,17 @@ function SheetBuilder(widths) {
 }
 const stamp = ms => { try { return new Date(ms).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } };
 
+const peerOnly = fb => fb.filter(f => PEER.some(p => p.k === f.type));
+
 /* 선생님 한 명의 탭: 구분별로 제목 줄 → 머리글 → 피드백이 차례로 쌓임 */
 function sheetRows(t, fb) {
-  const W = [6, 24, 52, 8];                 // 번호 | 내용(2칸) | 체크 — 피드백은 익명
+  const W = [6, 24, 52, 8];                 // 번호 | 내용 — 피드백은 익명
   const sb = SheetBuilder(W);
-  const sorted = [...fb].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const sorted = [...peerOnly(fb)].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   const of = k => sorted.filter(f => f.type === k);
 
   sb.row([{ v: disp(t.name) + '의 수업', s: XS.title, span: 5 }], 28);
-  sb.row([{ v: `${GROUP}모둠 · 받은 피드백 ${fb.length}개 · 체크 ${fb.filter(f => f.checked).length}개 · ${stamp(Date.now())} 저장`, s: XS.meta, span: 5 }], 18);
+  sb.row([{ v: `${GROUP}모둠 · 받은 피드백 ${peerOnly(fb).length}개 · ${stamp(Date.now())} 저장`, s: XS.meta, span: 5 }], 18);
   sb.blank();
 
   sb.row([{ v: '수업 공유', s: XS.sec, span: 5 }], 24);
@@ -739,26 +688,6 @@ function sheetRows(t, fb) {
   }
   sb.blank();
 
-  sb.row([{ v: '관점별 피드백', s: XS.sec, span: 5 }], 24);
-  for (const l of LENS) {
-    const items = of(l.k), nChk = items.filter(f => f.checked).length;
-    sb.row([{ v: `${l.e} ${l.t}  ·  “${l.q}”  (${items.length}개, 체크 ${nChk}개)`, s: XS.sub, span: 5 }]);
-    sb.row([{ v: '번호', s: XS.head }, { v: '내용', s: XS.head, span: 2 }, { v: '체크', s: XS.head }], 20);
-    if (!items.length) sb.row([{ v: '아직 피드백이 없습니다.', s: XS.empty, span: 5 }], 20);
-    items.forEach((f, i) => sb.row([{ v: i + 1, s: XS.num }, { v: f.text, s: XS.cell, span: 2 }, { v: f.checked ? '✔' : '', s: XS.check }]));
-  }
-  sb.blank();
-
-  const picked = LENS.map(l => ({ l, items: of(l.k).filter(f => f.checked) })).filter(g => g.items.length);
-  const nPicked = picked.reduce((a, g) => a + g.items.length, 0);
-  sb.row([{ v: `체크한 피드백 모아보기 (${nPicked}개)`, s: XS.sec, span: 5 }], 24);
-  if (!nPicked) sb.row([{ v: '체크한 피드백이 없습니다.', s: XS.empty, span: 5 }], 20);
-  for (const g of picked) {
-    sb.row([{ v: `${g.l.e} ${g.l.t}`, s: XS.sub, span: 5 }], 20);
-    g.items.forEach((f, i) => sb.row([{ v: i + 1, s: XS.num }, { v: f.text, s: XS.cell, span: 3 }]));
-  }
-  sb.blank();
-
   sb.row([{ v: '나의 수업 개선 방향', s: XS.sec, span: 5 }], 24);
   (t.improve || ['', '', '']).forEach((v, i) => sb.row([{ v: '개선 방향 ' + (i + 1), s: XS.label, span: 2 }, { v: v || '(작성하지 않음)', s: v ? XS.cell : XS.empty, span: 3 }]));
   return sb.toSheet();
@@ -766,31 +695,29 @@ function sheetRows(t, fb) {
 
 /* 모둠 요약 탭: 한 사람당 한 줄, 구분별 피드백 수 */
 function summarySheet(ts, all) {
-  const W = [14, 34, 34, 9, 9, 9, 9, 9, 9, 9, 9, 9, 8, 8, 30, 30, 30];
+  const W = [14, 34, 34, 11, 11, 11, 10, 30, 30, 30];
   const sb = SheetBuilder(W);
   sb.row([{ v: `${GROUP}모둠 전체 피드백 요약`, s: XS.title, span: W.length }], 28);
   sb.row([{ v: `참여 ${ts.length}명 · ${stamp(Date.now())} 저장 · 선생님별 자세한 내용은 이름 탭에 있습니다.`, s: XS.meta, span: W.length }], 18);
   sb.blank();
   sb.row([
     { v: '선생님', s: XS.head }, { v: '수업 공유', s: XS.head, span: 2 },
-    { v: '동료 피드백 (개)', s: XS.head, span: 3 }, { v: '관점별 피드백 (개)', s: XS.head, span: 6 },
-    { v: '합계', s: XS.head, span: 2 }, { v: '나의 수업 개선 방향', s: XS.head, span: 3 }
+    { v: '동료 피드백 (개)', s: XS.head, span: 3 }, { v: '합계', s: XS.head }, { v: '나의 수업 개선 방향', s: XS.head, span: 3 }
   ], 22);
   sb.row([
     { v: '', s: XS.head }, { v: '수업 한 줄 소개', s: XS.head }, { v: '동료에게 도움받고 싶은 질문', s: XS.head },
     ...PEER.map(p => ({ v: p.t, s: XS.head })),
-    ...LENS.map(l => ({ v: l.e + ' ' + l.t, s: XS.head })),
-    { v: '받은 피드백', s: XS.head }, { v: '체크', s: XS.head },
+    { v: '받은 피드백', s: XS.head },
     { v: '개선 방향 1', s: XS.head }, { v: '개선 방향 2', s: XS.head }, { v: '개선 방향 3', s: XS.head }
   ], 44);
   for (const t of ts) {
-    const fb = all[t.id] || [];
+    const fb = peerOnly(all[t.id] || []);
     const cnt = k => fb.filter(f => f.type === k).length;
     const imp = t.improve || ['', '', ''];
     sb.row([
       { v: disp(t.name), s: XS.label }, { v: t.intro || '', s: XS.cell }, { v: t.question || '', s: XS.cell },
-      ...PEER.map(p => ({ v: cnt(p.k), s: XS.center })), ...LENS.map(l => ({ v: cnt(l.k), s: XS.center })),
-      { v: fb.length, s: XS.center }, { v: fb.filter(f => f.checked).length, s: XS.check },
+      ...PEER.map(p => ({ v: cnt(p.k), s: XS.center })),
+      { v: fb.length, s: XS.center },
       { v: imp[0] || '', s: XS.cell }, { v: imp[1] || '', s: XS.cell }, { v: imp[2] || '', s: XS.cell }
     ]);
   }
@@ -836,10 +763,6 @@ $('adminBtn').addEventListener('click', () => {
   $('adminModal').hidden = false; $('adminErr').textContent = ''; $('adminPw').value = ''; setTimeout(() => $('adminPw').focus(), 30);
 });
 $('adminCancel').addEventListener('click', () => { $('adminModal').hidden = true; });
-$('lensFab').addEventListener('click', openLensGuide);
-$('lensClose').addEventListener('click', closeLensGuide);
-$('lensModal').addEventListener('click', e => { if (e.target === $('lensModal')) closeLensGuide(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('lensModal').hidden) closeLensGuide(); });
 $('adminForm').addEventListener('submit', async e => {
   e.preventDefault();
   try { await S.store.adminLogin($('adminPw').value); $('adminModal').hidden = true; }

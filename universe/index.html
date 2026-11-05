@@ -33,6 +33,7 @@ canvas{display:block}
 .sound{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 6px 0 4px;border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px)}
 .sound button{border:0;background:transparent;min-height:36px;padding:0 8px;font-size:18px}
 .sound input{width:110px;accent-color:var(--accent);cursor:pointer}
+.taphint{left:50%;top:22px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);color:var(--fg);border-radius:999px;padding:8px 16px;font-size:14px;backdrop-filter:blur(6px);pointer-events:none}
 .sound output{font-size:12px;color:var(--muted);min-width:34px;font-variant-numeric:tabular-nums}
 .feed{top:22px;right:22px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;max-width:min(380px,40vw)}
 .feed div{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;animation:fade 6s forwards;backdrop-filter:blur(6px)}
@@ -80,6 +81,7 @@ canvas{display:block}
   </div>
 </div>
 <audio id="bgm" src="bgm.mp3" preload="auto" loop></audio>
+<div class="hud taphint" id="tapHint" hidden>🎵 화면을 한 번 누르면 배경음악이 시작돼요</div>
 
 <div class="modal" id="adminModal" hidden>
   <form class="mbox" id="adminForm">
@@ -365,7 +367,7 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 /* ---------- 버튼 ---------- */
-$('replayBtn').onclick = () => { if (!replaying && wantedVisits().length) startMusic(); replay(); };
+$('replayBtn').onclick = () => { startMusic(); replay(); };
 
 /* ---------- 배경음악: 다시 보기와 함께 처음부터 시작하고, 끝난 뒤에도 계속 흐릅니다(반복 재생) ---------- */
 const bgm = $('bgm'); let fadeT = null;
@@ -378,18 +380,25 @@ function applyVol() {
   $('muteBtn').setAttribute('aria-pressed', muted); $('muteBtn').setAttribute('aria-label', muted ? '음소거 해제' : '음소거');
   if (!fadeT) bgm.volume = muted ? 0 : vol / 100;
 }
+function fadeIn() {
+  clearInterval(fadeT); const target = () => muted ? 0 : vol / 100; let k = 0;
+  fadeT = setInterval(() => { k++; bgm.volume = Math.min(target(), target() * k / 25); if (k >= 25) { clearInterval(fadeT); fadeT = null; applyVol(); } }, 100);
+}
+/* 화면을 열자마자 재생합니다. 브라우저가 자동 재생을 막으면, 화면을 처음 누르거나 키를 누르는 순간 바로 시작합니다. */
 function startMusic() {
-  clearInterval(fadeT); fadeT = null;
-  bgm.currentTime = 0; bgm.volume = 0;
-  bgm.play().then(() => {
-    const target = () => muted ? 0 : vol / 100; let k = 0;
-    fadeT = setInterval(() => { k++; bgm.volume = Math.min(target(), target() * k / 20); if (k >= 20) { clearInterval(fadeT); fadeT = null; applyVol(); } }, 100);
-  }).catch(() => banner('배경음악을 재생하지 못했습니다. 화면을 한 번 누른 뒤 다시 시도해 주세요.'));
+  if (!bgm.getAttribute('src') || !bgm.paused) return;
+  bgm.volume = 0;
+  bgm.play().then(() => { $('tapHint').hidden = true; fadeIn(); }).catch(() => {
+    $('tapHint').hidden = false;
+    const go = () => { removeEventListener('pointerdown', go, true); removeEventListener('keydown', go, true); startMusic(); };
+    addEventListener('pointerdown', go, true); addEventListener('keydown', go, true);
+  });
 }
 $('volRange').addEventListener('input', e => { vol = +e.target.value; if (vol > 0 && muted) muted = false; lsS('uni-vol', vol); lsS('uni-mute', muted ? '1' : '0'); applyVol(); });
 $('muteBtn').onclick = () => { muted = !muted; lsS('uni-mute', muted ? '1' : '0'); applyVol(); };
 addEventListener('keydown', e => { if (!e.target.closest('input,textarea') && (e.key === 'm' || e.key === 'M')) $('muteBtn').onclick(); });
 applyVol();
+if (!params.has('snap')) startMusic();
 $('namesBtn').onclick = () => { showNames = !showNames; $('namesBtn').setAttribute('aria-pressed', showNames); };
 $('rotateBtn').onclick = () => { controls.autoRotate = !controls.autoRotate; $('rotateBtn').setAttribute('aria-pressed', controls.autoRotate); };
 function full() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {}); }
@@ -397,7 +406,7 @@ $('fullBtn').onclick = full;
 addEventListener('keydown', e => {
   if (e.target.closest('input,textarea')) return;
   if (e.key === 'f' || e.key === 'F') full();
-  if (e.key === ' ') { e.preventDefault(); if (!replaying && wantedVisits().length) startMusic(); replay(); }
+  if (e.key === ' ') { e.preventDefault(); startMusic(); replay(); }
 });
 
 /* ---------- 데이터 연결 ---------- */
