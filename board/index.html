@@ -215,10 +215,10 @@ textarea:focus{background:var(--surface)}
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script>
 /* ===== 설정: Firebase 프로젝트를 만든 뒤 아래에 웹 앱 설정값을 붙여 넣으면 실시간 모드로 바뀝니다. 비워 두면 체험판(이 브라우저에만 저장)으로 동작합니다. ===== */
-/* 무료 한도를 나누기 위해 1~8모둠과 9~15모둠이 서로 다른 Firebase 프로젝트를 씁니다. */
+/* 무료 한도를 나누기 위해 1~8모둠과 9~17모둠이 서로 다른 Firebase 프로젝트를 씁니다. */
 function boardConfig(g) { const n = parseInt(g, 10); return (n >= 9 ? window.BOARD_FIREBASE_CONFIG_B : window.BOARD_FIREBASE_CONFIG_A) || null; }
 /* ===== 모둠 수: 연수 인원이 정해지면 이 숫자만 바꾸면 됩니다. ===== */
-const GROUP_COUNT = 15;
+const GROUP_COUNT = 17;
 
 let GROUP = (() => {
   try {

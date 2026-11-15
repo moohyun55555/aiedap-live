@@ -52,7 +52,7 @@
     lensOf(k) { return LENSES.find(l => l.k === k) || null; },
     checkIn({ name, group, lens }) {
       st.name = String(name || '').trim().slice(0, 20); st.lens = lens || ''; st.checked = true;
-      const g = parseInt(group, 10); if (g >= 1 && g <= 15) st.group = g;
+      const g = parseInt(group, 10); if (g >= 1 && g <= 17) st.group = g;
       persist(); schedule(0);
     },
     skip() { st.checked = true; persist(); },
@@ -60,7 +60,7 @@
     registerCard(group, cardId, name) {
       const key = group + '_' + cardId; let ch = false;
       if (!st.name && name) { st.name = String(name).slice(0, 20); ch = true; }
-      const g = parseInt(group, 10); if (!st.group && g >= 1 && g <= 15) { st.group = g; ch = true; }
+      const g = parseInt(group, 10); if (!st.group && g >= 1 && g <= 17) { st.group = g; ch = true; }
       if (!st.cards.includes(key)) { st.cards.push(key); if (st.cards.length > MAX_CARDS) st.cards = st.cards.slice(-MAX_CARDS); ch = true; }
       if (ch) change();
     },

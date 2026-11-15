@@ -618,7 +618,7 @@ function renderStarBtn() {
 }
 function openStar() {
   const m = Universe.me();
-  const sel = $('ciGroup'); if (!sel.options.length) { sel.append(new Option('아직 몰라요', '0')); for (let i = 1; i <= 15; i++) sel.append(new Option(i + '모둠', String(i))); }
+  const sel = $('ciGroup'); if (!sel.options.length) { sel.append(new Option('아직 몰라요', '0')); for (let i = 1; i <= 17; i++) sel.append(new Option(i + '모둠', String(i))); }
   sel.value = String(m.group || 0);
   const box = $('ciLens'); box.querySelectorAll('label').forEach(x => x.remove());
   for (const l of Universe.LENSES) {
